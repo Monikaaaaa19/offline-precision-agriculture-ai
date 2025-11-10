@@ -1,0 +1,23 @@
+# requirements.txt
+# --- Core ML & Data ---
+pandas
+numpy
+scikit-learn
+joblib
+
+# --- Server ---
+fastapi
+uvicorn[standard]
+pydantic
+
+# --- Image Processing (for optional disease model) ---
+tensorflow
+opencv-python-headless
+Pillow
+
+# --- Utilities ---
+# For area calculation (offline-capable)
+pyproj
+shapely
+# For serial/UDP ingest script
+pyserial

@@ -1,0 +1,1007 @@
+[
+    {
+        "predicted_crop": "pulses",
+        "confidence": 0.4442470873128767,
+        "fertilizer_recommendation": "Normal Fertilizers Needed",
+        "disease_alerts": [
+            "Powdery Mildew",
+            "Rust",
+            "Aphids"
+        ],
+        "area_acres": 1.4827176983605224,
+        "warnings": [],
+        "received_data": {
+            "N": 34.0,
+            "P": 12.0,
+            "K": 45.0,
+            "soil_ph": 6.5,
+            "avg_temp_c": 28.6,
+            "soil_moisture_pct": 73.5,
+            "annual_rainfall_mm": 2.4,
+            "device_id": null,
+            "timestamp": null,
+            "latitude": 13.021,
+            "longitude": 80.198,
+            "place_name": "Field A",
+            "polygon": [
+                {
+                    "lat": 13.021,
+                    "lng": 80.198
+                },
+                {
+                    "lat": 13.022,
+                    "lng": 80.199
+                },
+                {
+                    "lat": 13.0215,
+                    "lng": 80.1995
+                }
+            ]
+        },
+        "id": "pred_0",
+        "saved_at": "2025-11-10T13:54:31.683908"
+    },
+    {
+        "predicted_crop": "pulses",
+        "confidence": 0.4442470873128767,
+        "fertilizer_recommendation": "Normal Fertilizers Needed",
+        "disease_alerts": [
+            "Powdery Mildew",
+            "Rust",
+            "Aphids"
+        ],
+        "area_acres": 1.4827176983605224,
+        "warnings": [],
+        "received_data": {
+            "N": 34.0,
+            "P": 12.0,
+            "K": 45.0,
+            "soil_ph": 6.5,
+            "avg_temp_c": 28.6,
+            "soil_moisture_pct": 73.5,
+            "annual_rainfall_mm": 2.4,
+            "device_id": null,
+            "timestamp": null,
+            "latitude": 13.021,
+            "longitude": 80.198,
+            "place_name": "Field A (Simulated)",
+            "polygon": [
+                {
+                    "lat": 13.021,
+                    "lng": 80.198
+                },
+                {
+                    "lat": 13.022,
+                    "lng": 80.199
+                },
+                {
+                    "lat": 13.0215,
+                    "lng": 80.1995
+                }
+            ]
+        },
+        "id": "pred_1",
+        "saved_at": "2025-11-10T14:03:22.516008"
+    },
+    {
+        "predicted_crop": "pulses",
+        "confidence": 0.4442470873128767,
+        "fertilizer_recommendation": "Normal Fertilizers Needed",
+        "disease_alerts": [
+            "Powdery Mildew",
+            "Rust",
+            "Aphids"
+        ],
+        "area_acres": 1.4827176983605224,
+        "warnings": [],
+        "received_data": {
+            "N": 34.0,
+            "P": 12.0,
+            "K": 45.0,
+            "soil_ph": 6.5,
+            "avg_temp_c": 28.6,
+            "soil_moisture_pct": 73.5,
+            "annual_rainfall_mm": 2.4,
+            "device_id": null,
+            "timestamp": null,
+            "latitude": null,
+            "longitude": null,
+            "place_name": "Manual Test Field",
+            "polygon": [
+                {
+                    "lat": 13.021,
+                    "lng": 80.198
+                },
+                {
+                    "lat": 13.022,
+                    "lng": 80.199
+                },
+                {
+                    "lat": 13.0215,
+                    "lng": 80.1995
+                }
+            ]
+        },
+        "id": "pred_2",
+        "saved_at": "2025-11-10T14:17:57.134100"
+    },
+    {
+        "predicted_crop": "cotton",
+        "confidence": 0.4941666666666667,
+        "fertilizer_recommendation": "Normal Fertilizers Needed",
+        "disease_alerts": [
+            "Bollworm",
+            "Leaf Curl Virus"
+        ],
+        "area_acres": 1.4827176983605224,
+        "warnings": [],
+        "received_data": {
+            "N": 28.0,
+            "P": 10.0,
+            "K": 45.0,
+            "soil_ph": 7.5,
+            "avg_temp_c": 28.6,
+            "soil_moisture_pct": 73.5,
+            "annual_rainfall_mm": 2.4,
+            "device_id": null,
+            "timestamp": null,
+            "latitude": null,
+            "longitude": null,
+            "place_name": "Manual Test Field",
+            "polygon": [
+                {
+                    "lat": 13.021,
+                    "lng": 80.198
+                },
+                {
+                    "lat": 13.022,
+                    "lng": 80.199
+                },
+                {
+                    "lat": 13.0215,
+                    "lng": 80.1995
+                }
+            ]
+        },
+        "id": "pred_3",
+        "saved_at": "2025-11-10T14:18:46.137067"
+    },
+    {
+        "predicted_crop": "cotton",
+        "confidence": 0.4941666666666667,
+        "fertilizer_recommendation": "Normal Fertilizers Needed",
+        "disease_alerts": [
+            "Bollworm",
+            "Leaf Curl Virus"
+        ],
+        "area_acres": 1.4827176983605224,
+        "warnings": [],
+        "received_data": {
+            "N": 28.0,
+            "P": 10.0,
+            "K": 45.0,
+            "soil_ph": 7.5,
+            "avg_temp_c": 28.6,
+            "soil_moisture_pct": 73.5,
+            "annual_rainfall_mm": 2.4,
+            "device_id": null,
+            "timestamp": null,
+            "latitude": null,
+            "longitude": null,
+            "place_name": "Manual Test Field",
+            "polygon": [
+                {
+                    "lat": 13.021,
+                    "lng": 80.198
+                },
+                {
+                    "lat": 13.022,
+                    "lng": 80.199
+                },
+                {
+                    "lat": 13.0215,
+                    "lng": 80.1995
+                }
+            ]
+        },
+        "id": "pred_4",
+        "saved_at": "2025-11-10T14:24:16.517841"
+    },
+    {
+        "predicted_crop": "pulses",
+        "confidence": 0.4442470873128767,
+        "fertilizer_recommendation": "Normal Fertilizers Needed",
+        "disease_alerts": [
+            "Powdery Mildew",
+            "Rust",
+            "Aphids"
+        ],
+        "area_acres": 1.4827176983605224,
+        "warnings": [],
+        "received_data": {
+            "N": 34.0,
+            "P": 12.0,
+            "K": 45.0,
+            "soil_ph": 6.5,
+            "avg_temp_c": 28.6,
+            "soil_moisture_pct": 73.5,
+            "annual_rainfall_mm": 2.4,
+            "device_id": null,
+            "timestamp": null,
+            "latitude": null,
+            "longitude": null,
+            "place_name": "Test Field",
+            "polygon": [
+                {
+                    "lat": 13.021,
+                    "lng": 80.198
+                },
+                {
+                    "lat": 13.022,
+                    "lng": 80.199
+                },
+                {
+                    "lat": 13.0215,
+                    "lng": 80.1995
+                }
+            ]
+        },
+        "id": "pred_5",
+        "saved_at": "2025-11-10T14:31:32.368388"
+    },
+    {
+        "predicted_crop": "pulses",
+        "confidence": 0.4442470873128767,
+        "fertilizer_recommendation": "Normal Fertilizers Needed",
+        "disease_alerts": [
+            "Powdery Mildew",
+            "Rust",
+            "Aphids"
+        ],
+        "area_acres": 1.4827176983605224,
+        "warnings": [],
+        "received_data": {
+            "N": 34.0,
+            "P": 12.0,
+            "K": 45.0,
+            "soil_ph": 6.5,
+            "avg_temp_c": 28.6,
+            "soil_moisture_pct": 73.5,
+            "annual_rainfall_mm": 2.4,
+            "device_id": null,
+            "timestamp": null,
+            "latitude": null,
+            "longitude": null,
+            "place_name": "Test Field",
+            "polygon": [
+                {
+                    "lat": 13.021,
+                    "lng": 80.198
+                },
+                {
+                    "lat": 13.022,
+                    "lng": 80.199
+                },
+                {
+                    "lat": 13.0215,
+                    "lng": 80.1995
+                }
+            ]
+        },
+        "id": "pred_6",
+        "saved_at": "2025-11-10T14:31:52.859554"
+    },
+    {
+        "predicted_crop": "pulses",
+        "confidence": 0.4442470873128767,
+        "fertilizer_recommendation": "Normal Fertilizers Needed",
+        "disease_alerts": [
+            "Powdery Mildew",
+            "Rust",
+            "Aphids"
+        ],
+        "area_acres": 1.4827176983605224,
+        "warnings": [],
+        "received_data": {
+            "N": 34.0,
+            "P": 12.0,
+            "K": 45.0,
+            "soil_ph": 6.5,
+            "avg_temp_c": 28.6,
+            "soil_moisture_pct": 73.5,
+            "annual_rainfall_mm": 2.4,
+            "device_id": null,
+            "timestamp": null,
+            "latitude": null,
+            "longitude": null,
+            "place_name": "Test Field",
+            "polygon": [
+                {
+                    "lat": 13.021,
+                    "lng": 80.198
+                },
+                {
+                    "lat": 13.022,
+                    "lng": 80.199
+                },
+                {
+                    "lat": 13.0215,
+                    "lng": 80.1995
+                }
+            ]
+        },
+        "id": "pred_7",
+        "saved_at": "2025-11-10T14:46:32.185584"
+    },
+    {
+        "predicted_crop": "pulses",
+        "confidence": 0.4442470873128767,
+        "fertilizer_recommendation": "Normal Fertilizers Needed",
+        "disease_alerts": [
+            "Powdery Mildew",
+            "Rust",
+            "Aphids"
+        ],
+        "area_acres": 1.4827176983605224,
+        "warnings": [],
+        "received_data": {
+            "N": 34.0,
+            "P": 12.0,
+            "K": 45.0,
+            "soil_ph": 6.5,
+            "avg_temp_c": 28.6,
+            "soil_moisture_pct": 73.5,
+            "annual_rainfall_mm": 2.4,
+            "device_id": null,
+            "timestamp": null,
+            "latitude": null,
+            "longitude": null,
+            "place_name": "Test Field",
+            "polygon": [
+                {
+                    "lat": 13.021,
+                    "lng": 80.198
+                },
+                {
+                    "lat": 13.022,
+                    "lng": 80.199
+                },
+                {
+                    "lat": 13.0215,
+                    "lng": 80.1995
+                }
+            ]
+        },
+        "id": "pred_8",
+        "saved_at": "2025-11-10T14:53:43.803872"
+    },
+    {
+        "predicted_crop": "pulses",
+        "confidence": 0.4442470873128767,
+        "fertilizer_recommendation": "Normal Fertilizers Needed",
+        "disease_alerts": [
+            "Powdery Mildew",
+            "Rust",
+            "Aphids"
+        ],
+        "area_acres": 1.4827176983605224,
+        "warnings": [],
+        "received_data": {
+            "N": 34.0,
+            "P": 12.0,
+            "K": 45.0,
+            "soil_ph": 6.5,
+            "avg_temp_c": 28.6,
+            "soil_moisture_pct": 73.5,
+            "annual_rainfall_mm": 2.4,
+            "device_id": null,
+            "timestamp": null,
+            "latitude": null,
+            "longitude": null,
+            "place_name": "Test Field",
+            "polygon": [
+                {
+                    "lat": 13.021,
+                    "lng": 80.198
+                },
+                {
+                    "lat": 13.022,
+                    "lng": 80.199
+                },
+                {
+                    "lat": 13.0215,
+                    "lng": 80.1995
+                }
+            ]
+        },
+        "id": "pred_9",
+        "saved_at": "2025-11-10T14:54:07.141620"
+    },
+    {
+        "predicted_crop": "pulses",
+        "confidence": 0.4442470873128767,
+        "fertilizer_recommendation": "Normal Fertilizers Needed",
+        "disease_alerts": [
+            "Powdery Mildew",
+            "Rust",
+            "Aphids"
+        ],
+        "area_acres": 1.4827176983605224,
+        "warnings": [],
+        "received_data": {
+            "N": 34.0,
+            "P": 12.0,
+            "K": 45.0,
+            "soil_ph": 6.5,
+            "avg_temp_c": 28.6,
+            "soil_moisture_pct": 73.5,
+            "annual_rainfall_mm": 2.4,
+            "device_id": null,
+            "timestamp": null,
+            "latitude": null,
+            "longitude": null,
+            "place_name": "User Form Input",
+            "polygon": [
+                {
+                    "lat": 13.021,
+                    "lng": 80.198
+                },
+                {
+                    "lat": 13.022,
+                    "lng": 80.199
+                },
+                {
+                    "lat": 13.0215,
+                    "lng": 80.1995
+                }
+            ]
+        },
+        "id": "pred_10",
+        "saved_at": "2025-11-10T15:06:33.588456"
+    },
+    {
+        "predicted_crop": "pulses",
+        "confidence": 0.4442470873128767,
+        "fertilizer_recommendation": "Normal Fertilizers Needed",
+        "disease_alerts": [
+            "Powdery Mildew",
+            "Rust",
+            "Aphids"
+        ],
+        "area_acres": 1.4827176983605224,
+        "warnings": [],
+        "received_data": {
+            "N": 34.0,
+            "P": 12.0,
+            "K": 45.0,
+            "soil_ph": 6.5,
+            "avg_temp_c": 28.6,
+            "soil_moisture_pct": 73.5,
+            "annual_rainfall_mm": 2.4,
+            "device_id": null,
+            "timestamp": null,
+            "latitude": null,
+            "longitude": null,
+            "place_name": "User Form Input",
+            "polygon": [
+                {
+                    "lat": 13.021,
+                    "lng": 80.198
+                },
+                {
+                    "lat": 13.022,
+                    "lng": 80.199
+                },
+                {
+                    "lat": 13.0215,
+                    "lng": 80.1995
+                }
+            ]
+        },
+        "id": "pred_11",
+        "saved_at": "2025-11-10T15:09:43.000130"
+    },
+    {
+        "predicted_crop": "pulses",
+        "confidence": 0.4442470873128767,
+        "fertilizer_recommendation": "Normal Fertilizers Needed",
+        "disease_alerts": [
+            "Powdery Mildew",
+            "Rust",
+            "Aphids"
+        ],
+        "area_acres": 1.4827176983605224,
+        "warnings": [],
+        "received_data": {
+            "N": 34.0,
+            "P": 12.0,
+            "K": 45.0,
+            "soil_ph": 6.5,
+            "avg_temp_c": 28.6,
+            "soil_moisture_pct": 73.5,
+            "annual_rainfall_mm": 2.4,
+            "device_id": null,
+            "timestamp": null,
+            "latitude": null,
+            "longitude": null,
+            "place_name": "User Form Input",
+            "polygon": [
+                {
+                    "lat": 13.021,
+                    "lng": 80.198
+                },
+                {
+                    "lat": 13.022,
+                    "lng": 80.199
+                },
+                {
+                    "lat": 13.0215,
+                    "lng": 80.1995
+                }
+            ]
+        },
+        "id": "pred_12",
+        "saved_at": "2025-11-10T15:11:35.399659"
+    },
+    {
+        "predicted_crop": "pulses",
+        "confidence": 0.4442470873128767,
+        "fertilizer_recommendation": "Normal Fertilizers Needed",
+        "disease_alerts": [
+            "Powdery Mildew",
+            "Rust",
+            "Aphids"
+        ],
+        "area_acres": 1.4827176983605224,
+        "warnings": [],
+        "received_data": {
+            "N": 34.0,
+            "P": 12.0,
+            "K": 45.0,
+            "soil_ph": 6.5,
+            "avg_temp_c": 28.6,
+            "soil_moisture_pct": 73.5,
+            "annual_rainfall_mm": 2.4,
+            "device_id": null,
+            "timestamp": null,
+            "latitude": null,
+            "longitude": null,
+            "place_name": "User Form Input",
+            "polygon": [
+                {
+                    "lat": 13.021,
+                    "lng": 80.198
+                },
+                {
+                    "lat": 13.022,
+                    "lng": 80.199
+                },
+                {
+                    "lat": 13.0215,
+                    "lng": 80.1995
+                }
+            ]
+        },
+        "id": "pred_13",
+        "saved_at": "2025-11-10T15:12:10.767470"
+    },
+    {
+        "predicted_crop": "pulses",
+        "confidence": 0.4442470873128767,
+        "fertilizer_recommendation": "Normal Fertilizers Needed",
+        "disease_alerts": [
+            "Powdery Mildew",
+            "Rust",
+            "Aphids"
+        ],
+        "area_acres": 1.4827213209813246,
+        "warnings": [],
+        "received_data": {
+            "N": 34.0,
+            "P": 12.0,
+            "K": 45.0,
+            "soil_ph": 6.5,
+            "avg_temp_c": 28.6,
+            "soil_moisture_pct": 73.5,
+            "annual_rainfall_mm": 2.4,
+            "device_id": null,
+            "timestamp": null,
+            "latitude": 13.021,
+            "longitude": 80.198,
+            "place_name": "User Form Input",
+            "polygon": [
+                {
+                    "lat": 13.021,
+                    "lng": 80.198
+                },
+                {
+                    "lat": 13.022,
+                    "lng": 80.199
+                },
+                {
+                    "lat": 13.021,
+                    "lng": 80.199
+                }
+            ]
+        },
+        "id": "pred_14",
+        "saved_at": "2025-11-10T15:25:46.987866"
+    },
+    {
+        "predicted_crop": "pulses",
+        "confidence": 0.4442470873128767,
+        "fertilizer_recommendation": "Normal Fertilizers Needed",
+        "disease_alerts": [
+            "Powdery Mildew",
+            "Rust",
+            "Aphids"
+        ],
+        "area_acres": 1.4818532981591677,
+        "warnings": [],
+        "received_data": {
+            "N": 34.0,
+            "P": 12.0,
+            "K": 45.0,
+            "soil_ph": 6.5,
+            "avg_temp_c": 28.6,
+            "soil_moisture_pct": 73.5,
+            "annual_rainfall_mm": 2.4,
+            "device_id": null,
+            "timestamp": null,
+            "latitude": 13.169,
+            "longitude": 77.558,
+            "place_name": "User Form Input",
+            "polygon": [
+                {
+                    "lat": 13.169,
+                    "lng": 77.558
+                },
+                {
+                    "lat": 13.17,
+                    "lng": 77.55900000000001
+                },
+                {
+                    "lat": 13.169,
+                    "lng": 77.55900000000001
+                }
+            ]
+        },
+        "id": "pred_15",
+        "saved_at": "2025-11-10T15:26:53.597804"
+    },
+    {
+        "predicted_crop": "pulses",
+        "confidence": 0.4442470873128767,
+        "fertilizer_recommendation": "Normal Fertilizers Needed",
+        "disease_alerts": [
+            "Powdery Mildew",
+            "Rust",
+            "Aphids"
+        ],
+        "area_acres": 1.4827213209813246,
+        "warnings": [],
+        "received_data": {
+            "N": 34.0,
+            "P": 12.0,
+            "K": 45.0,
+            "soil_ph": 6.5,
+            "avg_temp_c": 28.6,
+            "soil_moisture_pct": 73.5,
+            "annual_rainfall_mm": 2.4,
+            "device_id": null,
+            "timestamp": null,
+            "latitude": 13.021,
+            "longitude": 80.198,
+            "place_name": "User Form Input",
+            "polygon": [
+                {
+                    "lat": 13.021,
+                    "lng": 80.198
+                },
+                {
+                    "lat": 13.022,
+                    "lng": 80.199
+                },
+                {
+                    "lat": 13.021,
+                    "lng": 80.199
+                }
+            ]
+        },
+        "id": "pred_16",
+        "saved_at": "2025-11-10T15:27:08.847196"
+    },
+    {
+        "predicted_crop": "rice",
+        "confidence": 0.36949999999999994,
+        "fertilizer_recommendation": "Normal Fertilizers Needed",
+        "disease_alerts": [
+            "Brown Spot",
+            "Sheath Blight",
+            "Rice Blast"
+        ],
+        "area_acres": 1.4827213209813246,
+        "warnings": [],
+        "received_data": {
+            "N": 92.0,
+            "P": 64.0,
+            "K": 86.0,
+            "soil_ph": 6.5,
+            "avg_temp_c": 26.5,
+            "soil_moisture_pct": 73.5,
+            "annual_rainfall_mm": 1426.0,
+            "device_id": null,
+            "timestamp": null,
+            "latitude": 13.021,
+            "longitude": 80.198,
+            "place_name": "User Form Input",
+            "polygon": [
+                {
+                    "lat": 13.021,
+                    "lng": 80.198
+                },
+                {
+                    "lat": 13.022,
+                    "lng": 80.199
+                },
+                {
+                    "lat": 13.021,
+                    "lng": 80.199
+                }
+            ]
+        },
+        "id": "pred_17",
+        "saved_at": "2025-11-10T15:40:04.035814"
+    },
+    {
+        "predicted_crop": "pulses",
+        "confidence": 0.4442470873128767,
+        "fertilizer_recommendation": "Normal Fertilizers Needed",
+        "disease_alerts": [
+            "Powdery Mildew",
+            "Rust",
+            "Aphids"
+        ],
+        "area_acres": 1.4818473959979146,
+        "warnings": [],
+        "received_data": {
+            "N": 34.0,
+            "P": 12.0,
+            "K": 45.0,
+            "soil_ph": 6.5,
+            "avg_temp_c": 28.6,
+            "soil_moisture_pct": 73.5,
+            "annual_rainfall_mm": 2.4,
+            "device_id": null,
+            "timestamp": null,
+            "latitude": 13.17,
+            "longitude": 77.56,
+            "place_name": "User Form Input",
+            "polygon": [
+                {
+                    "lat": 13.17,
+                    "lng": 77.56
+                },
+                {
+                    "lat": 13.171,
+                    "lng": 77.561
+                },
+                {
+                    "lat": 13.17,
+                    "lng": 77.561
+                }
+            ]
+        },
+        "id": "pred_18",
+        "saved_at": "2025-11-10T15:41:03.923059"
+    },
+    {
+        "predicted_crop": "pulses",
+        "confidence": 0.4442470873128767,
+        "fertilizer_recommendation": "Normal Fertilizers Needed",
+        "disease_alerts": [
+            "Powdery Mildew",
+            "Rust",
+            "Aphids"
+        ],
+        "area_acres": 1.4818473959979146,
+        "warnings": [],
+        "received_data": {
+            "N": 34.0,
+            "P": 12.0,
+            "K": 45.0,
+            "soil_ph": 6.5,
+            "avg_temp_c": 28.6,
+            "soil_moisture_pct": 73.5,
+            "annual_rainfall_mm": 2.4,
+            "device_id": null,
+            "timestamp": null,
+            "latitude": 13.17,
+            "longitude": 77.56,
+            "place_name": "User Form Input",
+            "polygon": [
+                {
+                    "lat": 13.17,
+                    "lng": 77.56
+                },
+                {
+                    "lat": 13.171,
+                    "lng": 77.561
+                },
+                {
+                    "lat": 13.17,
+                    "lng": 77.561
+                }
+            ]
+        },
+        "id": "pred_19",
+        "saved_at": "2025-11-10T15:41:42.518092"
+    },
+    {
+        "predicted_crop": "pulses",
+        "confidence": 0.4442470873128767,
+        "fertilizer_recommendation": "Normal Fertilizers Needed",
+        "disease_alerts": [
+            "Powdery Mildew",
+            "Rust",
+            "Aphids"
+        ],
+        "area_acres": 1.4827213209813246,
+        "warnings": [],
+        "received_data": {
+            "N": 34.0,
+            "P": 12.0,
+            "K": 45.0,
+            "soil_ph": 6.5,
+            "avg_temp_c": 28.6,
+            "soil_moisture_pct": 73.5,
+            "annual_rainfall_mm": 2.4,
+            "device_id": null,
+            "timestamp": null,
+            "latitude": 13.021,
+            "longitude": 80.198,
+            "place_name": "User Form Input",
+            "polygon": [
+                {
+                    "lat": 13.021,
+                    "lng": 80.198
+                },
+                {
+                    "lat": 13.022,
+                    "lng": 80.199
+                },
+                {
+                    "lat": 13.021,
+                    "lng": 80.199
+                }
+            ]
+        },
+        "id": "pred_20",
+        "saved_at": "2025-11-10T15:44:57.926702"
+    },
+    {
+        "predicted_crop": "coconut",
+        "confidence": 0.37262202380952375,
+        "fertilizer_recommendation": "Normal Fertilizers Needed",
+        "disease_alerts": [
+            "Bud Rot",
+            "Leaf Blight"
+        ],
+        "area_acres": 1.4818473959979146,
+        "warnings": [],
+        "received_data": {
+            "N": 98.0,
+            "P": 64.0,
+            "K": 87.0,
+            "soil_ph": 6.4,
+            "avg_temp_c": 26.5,
+            "soil_moisture_pct": 26.0,
+            "annual_rainfall_mm": 1426.0,
+            "device_id": null,
+            "timestamp": null,
+            "latitude": 13.17,
+            "longitude": 77.56,
+            "place_name": "User Form Input",
+            "polygon": [
+                {
+                    "lat": 13.17,
+                    "lng": 77.56
+                },
+                {
+                    "lat": 13.171,
+                    "lng": 77.561
+                },
+                {
+                    "lat": 13.17,
+                    "lng": 77.561
+                }
+            ]
+        },
+        "id": "pred_21",
+        "saved_at": "2025-11-10T15:58:33.426996"
+    },
+    {
+        "predicted_crop": "rice",
+        "confidence": 0.9874337748344371,
+        "fertilizer_recommendation": "Normal Fertilizers Needed",
+        "disease_alerts": [
+            "Brown Spot",
+            "Sheath Blight",
+            "Rice Blast"
+        ],
+        "area_acres": 1.491945050659557,
+        "warnings": [],
+        "received_data": {
+            "N": 98.0,
+            "P": 45.0,
+            "K": 37.0,
+            "soil_ph": 6.44,
+            "avg_temp_c": 24.5,
+            "soil_moisture_pct": 68.0,
+            "annual_rainfall_mm": 1426.0,
+            "device_id": null,
+            "timestamp": null,
+            "latitude": 11.33112221,
+            "longitude": 78.92162673,
+            "place_name": "User Form Input",
+            "polygon": [
+                {
+                    "lat": 11.33112221,
+                    "lng": 78.92162673
+                },
+                {
+                    "lat": 11.33212221,
+                    "lng": 78.92262673
+                },
+                {
+                    "lat": 11.33112221,
+                    "lng": 78.92262673
+                }
+            ]
+        },
+        "id": "pred_22",
+        "saved_at": "2025-11-10T17:30:32.472322"
+    },
+    {
+        "predicted_crop": "rice",
+        "confidence": 0.9874337748344371,
+        "fertilizer_recommendation": "Normal Fertilizers Needed",
+        "disease_alerts": [
+            "Brown Spot",
+            "Sheath Blight",
+            "Rice Blast"
+        ],
+        "area_acres": 1.4919450590401393,
+        "warnings": [],
+        "received_data": {
+            "N": 98.0,
+            "P": 45.0,
+            "K": 37.0,
+            "soil_ph": 6.44,
+            "avg_temp_c": 24.5,
+            "soil_moisture_pct": 68.0,
+            "annual_rainfall_mm": 1426.0,
+            "device_id": null,
+            "timestamp": null,
+            "latitude": 11.33112,
+            "longitude": 78.92163,
+            "place_name": "User Form Input",
+            "polygon": [
+                {
+                    "lat": 11.33112,
+                    "lng": 78.92163
+                },
+                {
+                    "lat": 11.33212,
+                    "lng": 78.92263
+                },
+                {
+                    "lat": 11.33112,
+                    "lng": 78.92263
+                }
+            ]
+        },
+        "id": "pred_23",
+        "saved_at": "2025-11-10T20:57:31.424828"
+    }
+]

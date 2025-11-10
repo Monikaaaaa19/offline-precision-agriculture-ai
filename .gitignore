@@ -1,0 +1,18 @@
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Node
+frontend/node_modules/
+frontend/build/
+frontend/.env
+npm-debug.log
+
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/
+
