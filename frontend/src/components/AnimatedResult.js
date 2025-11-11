@@ -15,11 +15,13 @@ function SpinningBox() {
 }
 
 function AnimatedResult({ data }) {
+  // We get all the data from the 'prediction' object
   const {
     predicted_crop,
     confidence,
     fertilizer_recommendation,
     disease_alerts,
+    received_data, // This object contains the state name
   } = data;
 
   // Animation variants for framer-motion
@@ -36,14 +38,17 @@ function AnimatedResult({ data }) {
   return (
     <motion.div
       style={styles.container}
+      className="result-container" // Use App.css styles
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
-      <h2 style={styles.header}>Prediction Successful!</h2>
+      <h2 style={styles.header} className="result-header">
+        Prediction Successful!
+      </h2>
 
       {/* 3D Viewer Section */}
-      <div style={styles.canvasContainer}>
+      <div style={styles.canvasContainer} className="result-canvas">
         <Canvas>
           <Suspense fallback={null}>
             <ambientLight intensity={0.5} />
@@ -63,49 +68,59 @@ function AnimatedResult({ data }) {
         </Canvas>
       </div>
 
-      {/* Results Details Section */}
-      <motion.div style={styles.details} variants={itemVariants}>
-        <strong>Predicted Crop:</strong>
+      {/* --- Results Details Section --- */}
+
+      {/* --- NEW: Added State Name Display --- */}
+      <motion.div
+        style={styles.details}
+        className="result-details"
+        variants={itemVariants}
+      >
+        <strong>📍 State / Region:</strong>
+        {/* We get the state name from the 'received_data' object */}
+        <span>{received_data.state || "N/A"}</span>
+      </motion.div>
+      {/* ---------------------------------- */}
+
+      <motion.div
+        style={styles.details}
+        className="result-details"
+        variants={itemVariants}
+      >
+        <strong>🌱 Predicted Crop:</strong>
         <span>
           {predicted_crop} ({(confidence * 100).toFixed(1)}%)
         </span>
       </motion.div>
 
-      <motion.div style={styles.details} variants={itemVariants}>
-        <strong>Fertilizer:</strong>
+      <motion.div
+        style={styles.details}
+        className="result-details"
+        variants={itemVariants}
+      >
+        <strong>🧪 Fertilizer:</strong>
         <span>{fertilizer_recommendation}</span>
       </motion.div>
 
-      <motion.div style={styles.details} variants={itemVariants}>
-        <strong>Disease Alerts:</strong>
+      <motion.div
+        style={styles.details}
+        className="result-details"
+        variants={itemVariants}
+      >
+        <strong>🐞 Disease Alerts:</strong>
         <span>{disease_alerts.join(", ")}</span>
       </motion.div>
     </motion.div>
   );
 }
 
-// Basic styling to make it look better
+// Basic styling (will be overridden by App.css)
 const styles = {
-  container: {
-    marginTop: "20px",
-    padding: "20px",
-    backgroundColor: "#f9f9f9",
-    borderRadius: "8px",
-    border: "1px solid #eee",
-    textAlign: "left",
-  },
   header: {
     textAlign: "center",
     color: "#333",
     borderBottom: "1px solid #ddd",
     paddingBottom: "10px",
-  },
-  canvasContainer: {
-    height: "250px",
-    width: "100%",
-    backgroundColor: "#e0e0e0",
-    borderRadius: "4px",
-    marginBottom: "20px",
   },
   details: {
     display: "flex",

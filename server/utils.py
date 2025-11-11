@@ -3,8 +3,7 @@
 Utility functions for the server.
 Includes:
 - Rule-based disease alerts
-- Fertilizer recommendation logic
-- (Future) Input validation helpers
+- Fertilizer recommendation logic (NOW PRIORITIZES ML MODEL)
 """
 
 import os
@@ -23,7 +22,6 @@ LABEL_ENCODER_PATH = os.path.join(MODELS_DIR, "label_encoder.joblib")
 
 
 # --- Disease Alert Mappings (Rule-Based) ---
-# As requested, this is the exact if-then mapping for disease alerts
 DISEASE_ALERTS = {
     "banana": ["Panama Disease", "Sigatoka Leaf Spot"],
     "coconut": ["Bud Rot", "Leaf Blight"],
@@ -42,14 +40,8 @@ DISEASE_ALERTS = {
 }
 
 def get_disease_alerts(crop_name: str) -> list:
-    """
-    Finds disease alerts for a given crop name using the
-    rule-based DISEASE_ALERTS dictionary.
-    """
-    # Normalize the crop name to lowercase to match the keys
+    # (This function is unchanged)
     lookup_key = crop_name.lower()
-    
-    # Find the alerts, or return the 'default' list if not found
     return DISEASE_ALERTS.get(lookup_key, DISEASE_ALERTS["default"])
 
 
@@ -59,24 +51,25 @@ class FertilizerRecommender:
     """
     A helper class to load fertilizer artifacts once and provide recommendations.
     
-    Priority:
-    1.  JSON lookup map (models/fertilizer_map.json)
-    2.  Trained ML model (models/fertilizer_model.joblib) (if it exists)
+    *** NEW PRIORITY ***
+    1.  Trained ML model (models/fertilizer_model.joblib) (if it exists)
+    2.  JSON lookup map (models/fertilizer_map.json) (as a fallback)
     3.  Default text fallback.
     """
     def __init__(self):
+        # We load both, as we did before
         self.fertilizer_map = self._load_fertilizer_map()
         self.fertilizer_model_artifacts = self._load_fertilizer_model()
         
-        if self.fertilizer_map:
-            print("[INFO] Fertilizer Recommender: Using JSON lookup map.")
-        elif self.fertilizer_model_artifacts:
-            print("[INFO] Fertilizer Recommender: Using trained ML model.")
+        if self.fertilizer_model_artifacts:
+            print("[INFO] Fertilizer Recommender: Using trained ML model (Priority 1).")
+        elif self.fertilizer_map:
+            print("[INFO] Fertilizer Recommender: Using JSON lookup map (Priority 2).")
         else:
             print("[WARN] Fertilizer Recommender: No map or model found. Using text defaults.")
 
     def _load_fertilizer_map(self) -> Optional[Dict[str, str]]:
-        """Loads the JSON map created by train_crop_model.py."""
+        # (This function is unchanged)
         try:
             with open(FERTILIZER_MAP_PATH, 'r') as f:
                 return json.load(f)
@@ -88,9 +81,9 @@ class FertilizerRecommender:
             return None
 
     def _load_fertilizer_model(self) -> Optional[Dict[str, Any]]:
-        """Loads the optional fertilizer model artifacts."""
+        # (This function is unchanged)
+        # This loads the .joblib file containing the model, scaler, and encoder
         try:
-            # The joblib file contains a dict: {'model', 'scaler', 'label_encoder'}
             artifacts = joblib.load(FERTILIZER_MODEL_PATH)
             if 'model' in artifacts and 'scaler' in artifacts and 'label_encoder' in artifacts:
                 return artifacts
@@ -110,22 +103,15 @@ class FertilizerRecommender:
         """
         lookup_key = crop_name.lower()
         
-        # Priority 1: JSON Map Lookup
-        if self.fertilizer_map:
-            recommendation = self.fertilizer_map.get(lookup_key)
-            if recommendation:
-                return recommendation
-
-        # Priority 2: ML Model Prediction
-        # (This path is used if map lookup fails or map doesn't exist,
-        #  AND the model was trained and loaded, AND features were provided)
+        # --- PRIORITY 1: ML Model Prediction ---
+        # We MUST have the 'features' (N,P,K etc.) to use the model
         if self.fertilizer_model_artifacts and features is not None:
             try:
                 model = self.fertilizer_model_artifacts['model']
                 scaler = self.fertilizer_model_artifacts['scaler']
                 le = self.fertilizer_model_artifacts['label_encoder']
                 
-                # Scale features (must be in 1D numpy array)
+                # Reshape features to 2D array (1 sample, 7 features)
                 features_2d = features.reshape(1, -1)
                 features_scaled = scaler.transform(features_2d)
                 
@@ -137,7 +123,13 @@ class FertilizerRecommender:
                 
             except Exception as e:
                 print(f"[ERROR] Fertilizer model prediction failed: {e}")
-                # Fall through to default
+                # Fall through to map lookup
 
-        # Priority 3: Default Fallback
+        # --- PRIORITY 2: JSON Map Lookup (Fallback) ---
+        if self.fertilizer_map:
+            recommendation = self.fertilizer_map.get(lookup_key)
+            if recommendation:
+                return recommendation
+
+        # --- PRIORITY 3: Default Fallback ---
         return f"Standard fertilizer application recommended for {crop_name}."

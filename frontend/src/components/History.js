@@ -1,25 +1,8 @@
 // frontend/src/components/History.js
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet"; // Import L to fix a known issue with icons
 
-// --- FIX for missing Leaflet marker icons ---
-// This is a common bug when using react-leaflet with bundlers
-import icon from "leaflet/dist/images/marker-icon.png";
-import iconShadow from "leaflet/dist/images/marker-shadow.png";
-
-let DefaultIcon = L.icon({
-  iconUrl: icon,
-  shadowUrl: iconShadow,
-  iconAnchor: [12, 41], // Manually set anchor
-});
-
-L.Marker.prototype.options.icon = DefaultIcon;
-// --- End of icon fix ---
-
-// A simple loading spinner (can be the same as StartPrediction's)
+// A simple loading spinner
 const LoadingSpinner = () => (
   <div className="history-spinner-container">
     <div className="loading-spinner"></div>
@@ -50,7 +33,7 @@ function History() {
     };
 
     fetchHistory();
-  }, []); // The empty array [] means "run this only once"
+  }, []);
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -70,37 +53,24 @@ function History() {
     );
   }
 
-  // --- Helper to render a map ---
-  // We check if the data has the lat/lon to display
+  // --- Helper to render the OFFLINE map image ---
   const renderMap = (record) => {
-    const { latitude, longitude, place_name } = record.received_data;
+    const { latitude, longitude } = record.received_data;
 
+    // Check if the record has location data
     if (latitude && longitude) {
-      const position = [latitude, longitude];
+      // The image URL now points to our new FastAPI endpoint
+      // This is 100% OFFLINE
+      const imageUrl = `/history_map/${record.id}.png`;
       return (
-        <div className="history-map-container">
-          <MapContainer
-            center={position}
-            zoom={13}
-            style={{ height: "200px", width: "100%" }}
-          >
-            {/* This TileLayer uses OpenStreetMap. It *will* try to connect
-              to the internet. This is the one part that isn't fully
-              offline by default, but it will degrade gracefully and just
-              show a gray box if no internet is present.
-              For a *truly* offline app, you'd need local map tiles.
-            */}
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <Marker position={position}>
-              <Popup>{place_name || "Prediction Location"}</Popup>
-            </Marker>
-          </MapContainer>
-        </div>
+        <img
+          src={imageUrl}
+          alt={`Map for Prediction ${record.id}`}
+          className="offline-map-image" // We'll add a style for this
+        />
       );
     }
+    // This is for old records that had no location
     return (
       <div className="history-map-placeholder">No location data provided.</div>
     );
@@ -116,6 +86,13 @@ function History() {
           <div className="history-card" key={record.id}>
             <div className="history-card-details">
               <h3>{record.received_data.place_name || "Unnamed Prediction"}</h3>
+
+              {/* --- NEW: Display State Name --- */}
+              <p>
+                <strong>State:</strong> {record.received_data.state || "N/A"}
+              </p>
+              {/* ----------------------------- */}
+
               <p>
                 <strong>Predicted Crop:</strong> {record.predicted_crop}
               </p>
