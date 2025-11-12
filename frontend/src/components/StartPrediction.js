@@ -1,8 +1,9 @@
 // frontend/src/components/StartPrediction.js
-import React from "react"; // We removed 'useState'
+import React, { useState } from "react";
 import axios from "axios";
+import { motion } from "framer-motion";
 import AnimatedResult from "./AnimatedResult";
-import { motion } from "framer-motion"; // <-- FIX: Was 'in', now 'from'
+import LiveFeed from "./LiveFeed";
 
 const LoadingSpinner = () => (
   <div className="spinner-container">
@@ -10,7 +11,6 @@ const LoadingSpinner = () => (
   </div>
 );
 
-// We now receive ALL state as props from App.js
 function StartPrediction(props) {
   const {
     N,
@@ -39,13 +39,15 @@ function StartPrediction(props) {
     setIsLoading,
   } = props;
 
+  const [isLive, setIsLive] = useState(false);
+
   const handleFormSubmit = async (event) => {
     event.preventDefault();
     setIsLoading(true);
     setError(null);
     setPrediction(null);
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 800));
 
     try {
       const dataToSend = {
@@ -89,7 +91,7 @@ function StartPrediction(props) {
 
   const formVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.45 } },
   };
 
   return (
@@ -98,119 +100,187 @@ function StartPrediction(props) {
       animate="visible"
       variants={formVariants}
       className="prediction-form-container"
+      style={{ maxWidth: 920, margin: "0 auto", padding: "24px" }}
     >
+      {/* Live feed on top */}
+      <div style={{ marginBottom: 32 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 12,
+          }}
+        >
+          <h2 style={{ fontSize: "1.5rem", color: "#2F80ED", margin: 0 }}>
+            🌿 Live ESP32 Sensor Feed
+          </h2>
+          <span
+            style={{
+              fontSize: "0.9rem",
+              background: isLive ? "#e63946" : "#6b7280",
+              color: "white",
+              padding: "6px 10px",
+              borderRadius: 12,
+              fontWeight: 600,
+              boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+              transition: "all 0.25s ease",
+            }}
+          >
+            {isLive ? "LIVE 🔴" : "OFFLINE ⚫"}
+          </span>
+        </div>
+
+        <LiveFeed
+          wsUrl={`ws://${window.location.hostname}:8000/ws/esp32`}
+          onStatusChange={(status) => setIsLive(status === "online")}
+        />
+      </div>
+
+      {/* Manual input form below (styled like LiveFeed card) */}
       {isLoading && <LoadingSpinner />}
 
-      <form onSubmit={handleFormSubmit} className="sensor-input-grid">
-        {/* All these inputs now use props, e.g., value={N} and onChange={e => setN(e.target.value)} */}
-        <div className="input-group">
-          <label htmlFor="N">🌿 Nitrogen (N)</label>
-          <input
-            type="number"
-            id="N"
-            value={N}
-            onChange={(e) => setN(e.target.value)}
-            step="0.1"
-            required
-          />
-        </div>
-        <div className="input-group">
-          <label htmlFor="P">🌾 Phosphorus (P)</label>
-          <input
-            type="number"
-            id="P"
-            value={P}
-            onChange={(e) => setP(e.target.value)}
-            step="0.1"
-            required
-          />
-        </div>
-        <div className="input-group">
-          <label htmlFor="K">🧪 Potassium (K)</label>
-          <input
-            type="number"
-            id="K"
-            value={K}
-            onChange={(e) => setK(e.target.value)}
-            step="0.1"
-            required
-          />
-        </div>
-        <div className="input-group">
-          <label htmlFor="pH">🍋 pH Level</label>
-          <input
-            type="number"
-            id="pH"
-            value={pH}
-            onChange={(e) => setpH(e.target.value)}
-            step="0.1"
-            required
-          />
-        </div>
-        <div className="input-group">
-          <label htmlFor="temperature">🌡️ Temperature (°C)</label>
-          <input
-            type="number"
-            id="temperature"
-            value={temperature}
-            onChange={(e) => setTemperature(e.target.value)}
-            step="0.1"
-            required
-          />
-        </div>
-        <div className="input-group">
-          <label htmlFor="humidity">💧 Soil Moisture (%)</label>
-          <input
-            type="number"
-            id="humidity"
-            value={humidity}
-            onChange={(e) => setHumidity(e.target.value)}
-            step="0.1"
-            required
-          />
-        </div>
-        <div className="input-group">
-          <label htmlFor="latitude">📍 Latitude</label>
-          <input
-            type="number"
-            id="latitude"
-            value={latitude}
-            onChange={(e) => setLatitude(e.target.value)}
-            step="0.001"
-            required
-          />
-        </div>
-        <div className="input-group">
-          <label htmlFor="longitude">📍 Longitude</label>
-          <input
-            type="number"
-            id="longitude"
-            value={longitude}
-            onChange={(e) => setLongitude(e.target.value)}
-            step="0.001"
-            required
-          />
-        </div>
-        <div className="input-group full-width">
-          <label htmlFor="rainfall">🌧️ Rainfall (mm)</label>
-          <input
-            type="number"
-            id="rainfall"
-            value={rainfall}
-            onChange={(e) => setRainfall(e.target.value)}
-            step="0.1"
-            required
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="predict-button full-width"
+      <div className="manual-card live-like-card">
+        <form
+          onSubmit={handleFormSubmit}
+          className="manual-metrics-layout"
+          aria-label="Manual input form"
         >
-          {isLoading ? "Predicting..." : "Predict Crop"}
-        </button>
-      </form>
+          <h2 className="manual-title">✋ Manual Input Section</h2>
+
+          {/* Metric-style tiles (two-column grid) */}
+          <div className="manual-metrics-grid">
+            <div className="input-tile">
+              <div className="tile-label">🌿 N</div>
+              <input
+                type="number"
+                value={N}
+                onChange={(e) => setN(e.target.value)}
+                step="0.1"
+                required
+                className="tile-input"
+              />
+            </div>
+
+            <div className="input-tile">
+              <div className="tile-label">🌾 P</div>
+              <input
+                type="number"
+                value={P}
+                onChange={(e) => setP(e.target.value)}
+                step="0.1"
+                required
+                className="tile-input"
+              />
+            </div>
+
+            <div className="input-tile">
+              <div className="tile-label">🧪 K</div>
+              <input
+                type="number"
+                value={K}
+                onChange={(e) => setK(e.target.value)}
+                step="0.1"
+                required
+                className="tile-input"
+              />
+            </div>
+
+            <div className="input-tile">
+              <div className="tile-label">🍋 pH</div>
+              <input
+                type="number"
+                value={pH}
+                onChange={(e) => setpH(e.target.value)}
+                step="0.01"
+                required
+                className="tile-input"
+              />
+            </div>
+
+            <div className="input-tile">
+              <div className="tile-label">🌡️ Temp (°C)</div>
+              <input
+                type="number"
+                value={temperature}
+                onChange={(e) => setTemperature(e.target.value)}
+                step="0.1"
+                required
+                className="tile-input"
+              />
+            </div>
+
+            <div className="input-tile">
+              <div className="tile-label">💧 Humidity (%)</div>
+              <input
+                type="number"
+                value={humidity}
+                onChange={(e) => setHumidity(e.target.value)}
+                step="0.1"
+                required
+                className="tile-input"
+              />
+            </div>
+
+            <div className="input-tile">
+              <div className="tile-label">🌱 Soil (%)</div>
+              <input
+                type="number"
+                value={""}
+                onChange={() => {}}
+                placeholder=""
+                className="tile-input"
+              />
+            </div>
+
+            <div className="input-tile">
+              <div className="tile-label">🌧️ Rainfall</div>
+              <input
+                type="number"
+                value={rainfall}
+                onChange={(e) => setRainfall(e.target.value)}
+                step="0.1"
+                required
+                className="tile-input"
+              />
+            </div>
+
+            <div className="input-tile">
+              <div className="tile-label">📍 Lat</div>
+              <input
+                type="number"
+                value={latitude}
+                onChange={(e) => setLatitude(e.target.value)}
+                step="0.000001"
+                required
+                className="tile-input"
+              />
+            </div>
+
+            <div className="input-tile">
+              <div className="tile-label">📍 Lon</div>
+              <input
+                type="number"
+                value={longitude}
+                onChange={(e) => setLongitude(e.target.value)}
+                step="0.000001"
+                required
+                className="tile-input"
+              />
+            </div>
+          </div>
+
+          <div className="manual-actions">
+            <button
+              type="submit"
+              className="predict-button"
+              disabled={isLoading}
+            >
+              {isLoading ? "Predicting..." : "Predict Crop"}
+            </button>
+          </div>
+        </form>
+      </div>
 
       {error && (
         <motion.div

@@ -382,5 +382,91 @@
         },
         "id": "pred_8",
         "saved_at": "2025-11-12T00:34:05.039831"
+    },
+    {
+        "predicted_crop": "rice",
+        "confidence": 0.8926253990796862,
+        "fertilizer_recommendation": "Muriate of Potash (MOP)",
+        "disease_alerts": [
+            "Brown Spot",
+            "Sheath Blight",
+            "Rice Blast"
+        ],
+        "area_acres": 1.376053652085709,
+        "warnings": [],
+        "received_data": {
+            "N": 128.0,
+            "P": 41.0,
+            "K": 14.0,
+            "soil_ph": 6.47,
+            "avg_temp_c": 22.8,
+            "soil_moisture_pct": 89.0,
+            "annual_rainfall_mm": 2448.0,
+            "latitude": 25.50237683,
+            "longitude": 85.32095227,
+            "device_id": null,
+            "timestamp": null,
+            "place_name": "User Form Input",
+            "polygon": [
+                {
+                    "lat": 25.50237683,
+                    "lng": 85.32095227
+                },
+                {
+                    "lat": 25.50337683,
+                    "lng": 85.32195227000001
+                },
+                {
+                    "lat": 25.50237683,
+                    "lng": 85.32195227000001
+                }
+            ],
+            "state": "Bihar"
+        },
+        "id": "pred_9",
+        "saved_at": "2025-11-12T14:09:11.842453"
+    },
+    {
+        "predicted_crop": "rice",
+        "confidence": 0.9293333333333332,
+        "fertilizer_recommendation": "Muriate of Potash (MOP)",
+        "disease_alerts": [
+            "Brown Spot",
+            "Sheath Blight",
+            "Rice Blast"
+        ],
+        "area_acres": 1.4101944259223391,
+        "warnings": [],
+        "received_data": {
+            "N": 106.0,
+            "P": 42.0,
+            "K": 25.0,
+            "soil_ph": 6.02,
+            "avg_temp_c": 20.3,
+            "soil_moisture_pct": 40.7,
+            "annual_rainfall_mm": 1301.0,
+            "latitude": 22.25913283,
+            "longitude": 88.73898238,
+            "device_id": null,
+            "timestamp": null,
+            "place_name": "User Form Input",
+            "polygon": [
+                {
+                    "lat": 22.25913283,
+                    "lng": 88.73898238
+                },
+                {
+                    "lat": 22.26013283,
+                    "lng": 88.73998238
+                },
+                {
+                    "lat": 22.25913283,
+                    "lng": 88.73998238
+                }
+            ],
+            "state": "West Bengal"
+        },
+        "id": "pred_10",
+        "saved_at": "2025-11-12T22:13:34.787027"
     }
 ]

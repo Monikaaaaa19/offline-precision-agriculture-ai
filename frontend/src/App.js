@@ -57,20 +57,29 @@ function App() {
   return (
     <BrowserRouter>
       <div className="App">
-        <nav>
+        {/* Pill navigation (Option A) */}
+        <nav
+          className="pill-nav"
+          role="navigation"
+          aria-label="Main navigation"
+        >
           <NavLink
             to="/"
-            className={({ isActive }) => (isActive ? "active" : "")}
+            end
+            className={({ isActive }) => `pill-btn ${isActive ? "active" : ""}`}
           >
             Start
           </NavLink>
+
           <NavLink
             to="/history"
-            className={({ isActive }) => (isActive ? "active" : "")}
+            className={({ isActive }) => `pill-btn ${isActive ? "active" : ""}`}
           >
             History
           </NavLink>
         </nav>
+
+        <div className="nav-divider" />
 
         <Routes>
           {/* We now pass all the props down to the StartPrediction component */}

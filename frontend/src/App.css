@@ -1,37 +1,46 @@
-/* frontend/src/App.css */
-/* --- Clean Form Layout with Pastel Green Background --- */
+/* frontend/src/App.css
+   UPDATED: Manual input tiles now match the Live ESP32 metric tile appearance
+   Keep the rest of your stylesheet as before (this file is the full App.css).
+*/
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
 
+:root{
+  /* Visual tokens used across components */
+  --surface-color: #F7FAFC; /* pale bluish surface used by live metric tiles */
+  --card-color: #FFFFFF;
+  --border-color: #E6EEF5;
+  --text-color: #243B53;
+  --subtle-text-color: #6B7C93;
+  --primary-color: #2F80ED;
+  --shadow: 0 6px 24px rgba(0,0,0,0.06);
+  --radius-card: 12px;
+}
+
+/* --- Base --- */
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  
-  /* --- As Requested: Pastel Green Background --- */
-  background-color: #f0fdf4; /* A light, pastel green */
-  /* ------------------------------------------- */
-  
-  color: #333;
+  background-color: #f0fdf4; /* pastel green */
+  color: var(--text-color);
   min-height: 100vh;
   margin: 0;
   padding: 0;
 }
 
-/* Main app container card */
+/* App container */
 .App {
-  max-width: 900px; /* Wider to fit form and results */
+  max-width: 960px;
   margin: 40px auto;
   padding: 30px;
-  background: #ffffff;
+  background: var(--card-color);
   border-radius: 16px;
-  box-shadow: 0 8px 32px 0 rgba(136, 152, 170, 0.15);
+  box-shadow: 0 8px 32px rgba(136,152,170,0.12);
   border: 1px solid #e9ecef;
 }
 
-/* Navigation tabs */
+/* nav */
 nav {
   display: flex;
   justify-content: center;
@@ -40,257 +49,131 @@ nav {
   margin-bottom: 25px;
 }
 
-nav a {
-  font-size: 1.1rem;
-  font-weight: 500;
-  text-decoration: none;
-  color: #555;
-  margin: 0 15px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-}
-
-nav a:hover {
-  background-color: #f1f3f5;
-  color: #000;
-}
-
-nav a.active {
-  background-color: #007aff;
-  color: white;
-  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
-}
-
-/* --- Form Styles --- */
+/* prediction container */
 .prediction-form-container {
-  max-width: 600px;
-  margin: 0 auto; /* Center the form */
-  position: relative; /* For the spinner */
+  max-width: 920px;
+  margin: 0 auto;
+  position: relative;
+  padding-bottom: 12px;
 }
 
-/* This is the 2-column grid for your form */
-.sensor-input-grid {
+/* ---------- Live-like manual card ---------- */
+.manual-card.live-like-card {
+  background: var(--card-color);
+  border-radius: 14px;
+  padding: 20px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.03);
+  margin-bottom: 28px;
+}
+
+/* Manual title */
+.manual-title {
+  font-size: 1.35rem;
+  color: var(--primary-color);
+  font-weight: 600;
+  margin: 0 0 14px 0;
+}
+
+/* Grid for the metric-style tiles */
+.manual-metrics-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr; /* Two equal columns */
-  gap: 20px; /* Space between fields */
-  margin-bottom: 20px;
+  grid-template-columns: repeat(5, 1fr); /* compact, like LiveFeed */
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 16px;
 }
 
-/* Styles for each form field group */
-.input-group {
+/* Responsive fallbacks */
+@media (max-width: 1100px) {
+  .manual-metrics-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 720px) {
+  .manual-metrics-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* each input tile imitates LiveFeed metric card exactly */
+.input-tile {
+  background: var(--surface-color);      /* MATCH: same pale bluish surface as LiveFeed */
+  border-radius: 12px;                   /* rounded */
+  border: 1px solid var(--border-color); /* same border token */
+  padding: 12px 14px;
+  /* VERY subtle shadow like live tiles (low intensity) */
+  box-shadow: 0 4px 14px rgba(0,0,0,0.03);
+  min-height: 72px;
   display: flex;
   flex-direction: column;
+  justify-content: center;
 }
 
-.input-group label {
-  font-weight: 500;
-  color: #333;
-  margin-bottom: 8px;
-  font-size: 0.95rem;
+/* label inside tile */
+.tile-label {
+  color: var(--subtle-text-color);
+  font-size: 0.92rem;
+  margin-bottom: 6px;
+  font-weight: 600;
 }
 
-.input-group input {
-  font-family: 'Inter', sans-serif;
-  padding: 12px 14px;
-  border: 1px solid #ced4da;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.input-group input:focus {
+/* input inside tile styled as the metric value area */
+.tile-input {
+  border: none;
   outline: none;
-  border-color: #007aff;
-  box-shadow: 0 0 0 3px rgba(0,122,255,0.1);
+  background: transparent;
+  font-size: 1rem;
+  color: var(--text-color);
+  width: 100%;
+  padding: 6px 0;
+  box-sizing: border-box;
 }
 
-/* Makes an item span across both columns */
-.full-width {
-  grid-column: 1 / -1; /* Span from first to last column */
+/* placeholder faint like metric dashes */
+.tile-input::placeholder {
+  color: rgba(36,59,83,0.30);
 }
 
-/* Modern blue button */
+/* actions area */
+.manual-actions {
+  margin-top: 8px;
+  display: flex;
+  justify-content: center;
+}
+
+/* Predict button */
 .predict-button {
   background: #007aff;
   color: white;
   border: none;
-  padding: 14px 28px;
-  width: 100%;
-  border-radius: 8px;
-  font-size: 1.1rem;
-  font-weight: 500;
+  padding: 12px 26px;
+  border-radius: 10px;
+  font-size: 1.05rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.2);
+  box-shadow: 0 8px 24px rgba(0, 122, 255, 0.15);
+  width: 100%;
+  max-width: 420px;
 }
+.predict-button:hover { transform: translateY(-2px); background: #0056b3; }
 
-.predict-button:hover {
-  transform: translateY(-2px);
-  background: #0056b3;
-  box-shadow: 0 6px 16px rgba(0, 122, 255, 0.3);
-}
-
-.predict-button:disabled {
-  background: #adb5bd;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-/* --- Loading Spinner --- */
+/* --- Spinner / Error / Results unchanged (kept concise) --- */
 .spinner-container {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.7);
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(255,255,255,0.7);
   backdrop-filter: blur(5px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: 12px;
-  z-index: 10;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:12px; z-index:10;
 }
-.history-spinner-container { /* For history page */
-  padding-top: 50px;
-  display: flex;
-  justify-content: center;
-}
-
 .loading-spinner {
-  width: 50px;
-  height: 50px;
-  border: 5px solid #f3f3f3;
-  border-top: 5px solid #007aff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+  width:50px;height:50px;border:5px solid #f3f3f3;border-top:5px solid #007aff;border-radius:50%;animation:spin 1s linear infinite;
 }
+@keyframes spin { 0%{transform:rotate(0deg);}100%{transform:rotate(360deg);} }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* --- Error Box --- */
 .error-box {
-  color: #b33e3a;
-  background-color: #fdeded;
-  border: 1px solid #f8c6c5;
-  border-radius: 8px;
-  padding: 15px;
-  margin-top: 20px;
-  text-align: left;
+  color:#b33e3a;background-color:#fdeded;border:1px solid #f8c6c5;border-radius:8px;padding:15px;margin-top:20px;text-align:left;
 }
-.error-box pre {
-  white-space: pre-wrap;
-  word-break: all;
-  color: #c9514c;
-}
+.error-box pre { white-space:pre-wrap; word-break:break-word; color:#c9514c; }
 
-/* --- AnimatedResult.js Component Styles --- */
-.result-container {
-  margin-top: 30px;
-  padding: 25px;
-  background-color: #f9f9f9;
-  border-radius: 12px;
-  border: 1px solid #e9ecef;
-  text-align: left;
-}
-.result-header {
-  text-align: center;
-  color: #007aff;
-  font-size: 1.5rem;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 15px;
-  margin-top: 0;
-}
-.result-canvas {
-  height: 250px;
-  width: 100%;
-  background-color: #e9ecef;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-.result-details {
-  display: flex;
-  justify-content: space-between;
-  padding: 12px 0;
-  border-bottom: 1px solid #eee;
-  font-size: 1rem;
-}
-.result-details:last-child {
-  border-bottom: none;
-}
-.result-details strong {
-  color: #333;
-}
-.result-details span {
-  color: #555;
-  text-align: right;
-}
-
-/* --- NEW: History.js Component Styles --- */
-.history-container h2 {
-  text-align: center;
-  margin-bottom: 20px;
-}
-.history-list {
-  display: flex;
-  flex-direction: column;
-  gap: 20px; /* Space between cards */
-}
-.history-card {
-  display: grid;
-  grid-template-columns: 1fr 1fr; /* Details on left, map on right */
-  gap: 20px;
-  padding: 20px;
-  border: 1px solid #e9ecef;
-  border-radius: 12px;
-  background: #ffffff;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-}
-.history-card-details h3 {
-  margin-top: 0;
-  color: #007aff;
-}
-.history-card-details p {
-  margin: 8px 0;
-  color: #333;
-}
-.history-card-details p strong {
-  color: #000;
-}
-.history-timestamp {
-  font-size: 0.85rem;
-  color: #777;
-  margin-top: 15px;
-}
-.history-card-map {
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid #eee;
-}
-.history-map-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 200px;
-  background-color: #f9f9f9;
-  color: #888;
-  border-radius: 8px;
-}
-/* This makes leaflet maps work correctly */
-.leaflet-container {
-  height: 100%;
-  width: 100%;
-}
-
-/* --- NEW: Style for Offline Map Image --- */
-.offline-map-image {
-  width: 100%;
-  height: auto;
-  border-radius: 8px;
-  border: 1px solid #eee;
+/* small responsive tweak */
+@media (max-width: 420px) {
+  .predict-button { padding: 12px; font-size: 1rem; }
 }
