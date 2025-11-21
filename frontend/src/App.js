@@ -1,86 +1,99 @@
-// frontend/src/App.js
+// src/App.js
 import React, { useState } from "react";
-import { BrowserRouter, Routes, Route, NavLink } from "react-router-dom";
+import "./App.css";
 
-// We import the components
+import LiveFeed from "./components/LiveFeed.jsx";
 import StartPrediction from "./components/StartPrediction";
 import History from "./components/History";
-import "./App.css"; // Don't forget to import your CSS!
+
+const TABS = {
+  LIVE: "live",
+  MANUAL: "manual",
+  HISTORY: "history",
+};
 
 function App() {
-  // --- We move ALL state from StartPrediction up to App ---
-  const [N, setN] = useState("");
-  const [P, setP] = useState("");
-  const [K, setK] = useState("");
-  const [pH, setpH] = useState("");
-  const [temperature, setTemperature] = useState("");
-  const [humidity, setHumidity] = useState("");
-  const [rainfall, setRainfall] = useState("");
-  const [latitude, setLatitude] = useState("");
-  const [longitude, setLongitude] = useState("");
-
-  const [prediction, setPrediction] = useState(null);
-  const [error, setError] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  // --------------------------------------------------------
-
-  const startProps = {
-    N,
-    setN,
-    P,
-    setP,
-    K,
-    setK,
-    pH,
-    setpH,
-    temperature,
-    setTemperature,
-    humidity,
-    setHumidity,
-    rainfall,
-    setRainfall,
-    latitude,
-    setLatitude,
-    longitude,
-    setLongitude,
-    prediction,
-    setPrediction,
-    error,
-    setError,
-    isLoading,
-    setIsLoading,
-  };
+  const [activeTab, setActiveTab] = useState(TABS.LIVE);
 
   return (
-    <BrowserRouter>
-      <div className="App">
-        {/* Top nav uses pill buttons styled in App.css */}
-        <div className="top-nav" role="navigation" aria-label="Main navigation">
-          <NavLink
-            to="/"
-            className={({ isActive }) => (isActive ? "active" : "")}
-          >
-            Start
-          </NavLink>
-          <NavLink
-            to="/history"
-            className={({ isActive }) => (isActive ? "active" : "")}
-          >
-            History
-          </NavLink>
+    <div className="app-root">
+      {/* ───────────── HEADER ───────────── */}
+      <header className="app-header">
+        <div>
+          <h1>
+            Real-Time Offline AI System for Sensor-Integrated Precision
+            Agriculture
+          </h1>
+          <p>
+            Real-time crop, fertilizer, and disease-risk advisory from live
+            Arduino sensor data
+          </p>
+        </div>
+      </header>
+
+      {/* ───────────── TABS ───────────── */}
+      <div className="nav-tabs">
+        <button
+          type="button"
+          className={`nav-tab ${activeTab === TABS.LIVE ? "active" : ""}`}
+          onClick={() => setActiveTab(TABS.LIVE)}
+        >
+          Live Arduino
+        </button>
+
+        <button
+          type="button"
+          className={`nav-tab ${activeTab === TABS.MANUAL ? "active" : ""}`}
+          onClick={() => setActiveTab(TABS.MANUAL)}
+        >
+          Manual Input
+        </button>
+
+        <button
+          type="button"
+          className={`nav-tab ${activeTab === TABS.HISTORY ? "active" : ""}`}
+          onClick={() => setActiveTab(TABS.HISTORY)}
+        >
+          History
+        </button>
+      </div>
+
+      {/* ───────────── MAIN CONTENT ───────────── */}
+      <main className="app-main">
+        {/* ---- LIVE TAB ---- */}
+        <div
+          className={
+            activeTab === TABS.LIVE
+              ? "tab-panel tab-panel-active"
+              : "tab-panel tab-panel-hidden"
+          }
+        >
+          <LiveFeed />
         </div>
 
-        <div className="nav-divider" />
+        {/* ---- MANUAL TAB ---- */}
+        <div
+          className={
+            activeTab === TABS.MANUAL
+              ? "tab-panel tab-panel-active"
+              : "tab-panel tab-panel-hidden"
+          }
+        >
+          <StartPrediction />
+        </div>
 
-        <Routes>
-          {/* We now pass all the props down to the StartPrediction component */}
-          <Route path="/" element={<StartPrediction {...startProps} />} />
-
-          {/* History page doesn't need any props */}
-          <Route path="/history" element={<History />} />
-        </Routes>
-      </div>
-    </BrowserRouter>
+        {/* ---- HISTORY TAB ---- */}
+        <div
+          className={
+            activeTab === TABS.HISTORY
+              ? "tab-panel tab-panel-active"
+              : "tab-panel tab-panel-hidden"
+          }
+        >
+          <History />
+        </div>
+      </main>
+    </div>
   );
 }
 

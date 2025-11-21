@@ -1,43 +1,55 @@
 # server/main.py
+
 """
 Main FastAPI application file.
-Serial -> WebSocket bridge now also runs automatic predictions for every incoming sensor packet,
-then broadcasts both the raw sensor (type: "sensor") and the prediction result (type: "prediction")
-to connected websocket clients.
 
-This variant adds a `source` field to saved prediction records:
- - "ESP32" for predictions triggered by the serial live feed
- - "manual" for predictions triggered by the form POST
+REST ingestion from Arduino (via scripts/ingest_arduino.py):
+ - POST /api/sensor-data   <- receives corrected sensor payloads
+ - POST /api/status        <- receives online/offline status
+ - POST /api/calibration   <- receives calibration metadata
+ - GET  /api/history       <- returns recent sensor readings (in-memory)
+
+Each sensor payload triggers (when change is significant):
+ - An automatic crop prediction using loaded ML models
+ - Broadcast over WebSocket (/ws/esp32) with:
+     type: "sensor"     -> latest sensor reading
+     type: "prediction" -> latest prediction
+     type: "status"     -> device online/offline
+     type: "calibration"-> calibration info
+     type: "history"    -> recent sensor readings on connect
 """
 
 import asyncio
 import json
-import threading
 import time
 from typing import List, Dict, Any, Optional
 
 import numpy as np
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import (
+    FastAPI,
+    HTTPException,
+    WebSocket,
+    WebSocketDisconnect,
+    Request,
+)
 from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-# Serial support
-import serial  # pip install pyserial
-
-# stdlib
 import io
 import os
 
+import pandas as pd  # <-- NEW: for fertilizer CSV
+
 # --- Matplotlib (for offline maps) ---
 import matplotlib
-matplotlib.use('Agg')
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from shapely.geometry import Polygon, Point
-# -------------------------------------
 
 # --- State Lookup (GeoPandas) ---
 import geopandas as gpd
-# --------------------------------
 
 # --- Local Imports ---
 try:
@@ -49,18 +61,47 @@ from server.utils import get_disease_alerts
 from server.db_json import save_prediction, read_prediction_history
 from utils.area_utils import calculate_area_acres
 
-# --- Serial config (adjust for your machine) ---
-SERIAL_PORT = os.environ.get("ESP32_SERIAL_PORT", "/dev/tty.SLAB_USBtoUART")
-SERIAL_BAUD = int(os.environ.get("ESP32_SERIAL_BAUD", "115200"))
-SERIAL_READ_TIMEOUT = 1.0  # seconds
+# ---------------- In-memory sensor / status state ----------------
+SENSOR_HISTORY: List[Dict[str, Any]] = []  # last N sensor readings
+LAST_STATUS: Dict[str, Any] = {"online": False, "updated_at": None}
+LAST_CALIBRATION: Optional[Dict[str, Any]] = None
 
-# --- WebSocket / Serial bridge globals ---
-connected_websockets = set()  # set of WebSocket
-serial_thread = None
-serial_thread_stop = threading.Event()
-asyncio_loop = None  # will be set at startup
+# Auto-prediction significant-change memory (for /api/sensor-data)
+LAST_LIVE_FEATURES: Optional[Dict[str, float]] = None
 
-# --- Load State Boundary File ---
+SIGNIFICANT_THRESHOLDS: Dict[str, float] = {
+    "N": 5.0,
+    "P": 5.0,
+    "K": 5.0,
+    "pH": 0.2,
+    "temperature": 1.0,
+    "humidity": 5.0,
+    "rainfall": 50.0,
+}
+
+
+def has_significant_change(
+    previous: Optional[Dict[str, float]],
+    current: Dict[str, float],
+    thresholds: Dict[str, float],
+) -> bool:
+    """Return True if ANY feature changes more than its threshold."""
+    if previous is None:
+        return True
+    for key, threshold in thresholds.items():
+        old = previous.get(key)
+        new = current.get(key)
+        if old is None or new is None:
+            continue
+        try:
+            if abs(float(new) - float(old)) >= float(threshold):
+                return True
+        except Exception:
+            continue
+    return False
+
+
+# ---------------- Load State Boundary File ----------------
 STATE_FILE_PATH = "data/india_states.geojson"
 STATE_BOUNDARIES = None
 try:
@@ -73,24 +114,24 @@ try:
 except Exception as e:
     print(f"[ERROR] Could not load state boundary file: {e}")
 
+
 def get_state_from_coords(lat: float, lon: float) -> str:
-    """Finds the state name from lat/lon using the loaded GeoJSON."""
+    """Find the state name from lat/lon using the loaded GeoJSON."""
     if STATE_BOUNDARIES is None:
         return "Unknown (No GeoJSON)"
-    
+
     try:
-        point = Point(lon, lat) # GeoPandas/Shapely use (lon, lat)
+        point = Point(lon, lat)
         containing_states = STATE_BOUNDARIES[STATE_BOUNDARIES.contains(point)]
-        
+
         if not containing_states.empty:
             state_name = "Unknown State"
-            if 'NAME_1' in containing_states.columns:
-                state_name = containing_states.iloc[0]['NAME_1']
-            elif 'st_nm' in containing_states.columns:
-                state_name = containing_states.iloc[0]['st_nm']
-            elif 'state' in containing_states.columns:
-                state_name = containing_states.iloc[0]['state']
-            
+            if "NAME_1" in containing_states.columns:
+                state_name = containing_states.iloc[0]["NAME_1"]
+            elif "st_nm" in containing_states.columns:
+                state_name = containing_states.iloc[0]["st_nm"]
+            elif "state" in containing_states.columns:
+                state_name = containing_states.iloc[0]["state"]
             return state_name
         else:
             return "Outside Boundaries"
@@ -99,30 +140,79 @@ def get_state_from_coords(lat: float, lon: float) -> str:
         return "Lookup Error"
 
 
-# --- Data Models (Pydantic) ---
+# ---------------- Fertilizer mapping from dataset ----------------
+FERTILIZER_MAP: Dict[str, str] = {}
+
+try:
+    # Adjust path if your CSV is elsewhere
+    FERT_CSV_PATH = os.path.join("data", "arginode_corrected_fertilizers.csv")
+    if os.path.exists(FERT_CSV_PATH):
+        fert_df = pd.read_csv(FERT_CSV_PATH)
+
+        # Try to detect crop column
+        crop_col = None
+        for c in ["crop", "Crop", "label", "Label", "CropName", "Crop_Name"]:
+            if c in fert_df.columns:
+                crop_col = c
+                break
+
+        # Try to detect fertilizer column
+        fert_col = None
+        for c in ["fertilizer", "Fertilizer", "fertilizer_name", "Fertilizer_Name"]:
+            if c in fert_df.columns:
+                fert_col = c
+                break
+
+        if crop_col and fert_col:
+            for crop_value, group in fert_df.groupby(crop_col):
+                vals = (
+                    group[fert_col]
+                    .dropna()
+                    .astype(str)
+                    .str.strip()
+                )
+                if not vals.empty:
+                    most_common = vals.value_counts().idxmax()
+                    key = str(crop_value).strip().lower()
+                    FERTILIZER_MAP[key] = most_common
+
+            print(f"[INFO] Loaded {len(FERTILIZER_MAP)} fertilizer rules from CSV.")
+        else:
+            print("[WARN] Could not detect crop/fertilizer columns in fertilizer CSV.")
+    else:
+        print(f"[WARN] Fertilizer CSV not found at: {FERT_CSV_PATH}")
+except Exception as e:
+    print(f"[ERROR] Failed to load fertilizer CSV: {e}")
+
+
+# ---------------- Data Models (Pydantic) ----------------
 class PolygonPoint(BaseModel):
     lat: float
     lng: float
+
 
 class PredictionInput(BaseModel):
     N: float
     P: float
     K: float
-    soil_ph: float = Field(..., alias='pH')
-    avg_temp_c: float = Field(..., alias='temperature')
-    soil_moisture_pct: float = Field(..., alias='humidity')
-    annual_rainfall_mm: float = Field(..., alias='rainfall')
+    soil_ph: float = Field(..., alias="pH")
+    avg_temp_c: float = Field(..., alias="temperature")
+    soil_moisture_pct: float = Field(..., alias="humidity")
+    annual_rainfall_mm: float = Field(..., alias="rainfall")
     latitude: float
     longitude: float
     device_id: Optional[str] = None
     timestamp: Optional[str] = None
     place_name: Optional[str] = None
     polygon: Optional[List[PolygonPoint]] = None
+
     class Config:
         populate_by_name = True
 
+
 class SavedPredictionData(PredictionInput):
     state: Optional[str] = None
+
 
 class PredictionResponse(BaseModel):
     predicted_crop: str
@@ -133,274 +223,103 @@ class PredictionResponse(BaseModel):
     warnings: List[str]
     received_data: SavedPredictionData
 
-# --- Initialize FastAPI App ---
+
+# ---------------- Initialize FastAPI App ----------------
 app = FastAPI()
 
-# -------------------------
-# Helper broadcast function
-# -------------------------
-async def broadcast_text(text: str):
-    """Send a text message to all connected websocket clients (safe gather)."""
-    if not connected_websockets:
-        return
-    ws_snapshot = list(connected_websockets)
-    coros = []
-    for ws in ws_snapshot:
+# Allow frontend dev server (localhost:3000) to call backend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],   # you can restrict to ["http://localhost:3000"]
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ---------------- WebSocket state ----------------
+ws_clients: set[WebSocket] = set()
+
+
+async def broadcast_ws(message: dict):
+    """Send a JSON message to all connected websocket clients."""
+    dead: List[WebSocket] = []
+    for ws in ws_clients:
         try:
-            coros.append(ws.send_text(text))
+            await ws.send_json(message)
         except Exception:
-            pass
-    if coros:
+            dead.append(ws)
+    for ws in dead:
         try:
-            await asyncio.gather(*coros, return_exceptions=True)
-        except Exception:
-            pass
-
-# -------------------------
-# Serial reader thread
-# -------------------------
-def safe_float(v):
-    try:
-        return float(v)
-    except Exception:
-        return None
-
-def build_prediction_payload(parsed: dict) -> Dict[str, Any]:
-    """
-    Given parsed sensor data (dict), run the ML prediction pipeline and build a JSON-serializable result.
-    This function also attaches a 'source' field = "ESP32" to the saved payload.
-    """
-    # Map incoming keys to PredictionInput names (be tolerant)
-    mapped = {
-        "N": parsed.get("N") if parsed.get("N") is not None else parsed.get("n"),
-        "P": parsed.get("P") if parsed.get("P") is not None else parsed.get("p"),
-        "K": parsed.get("K") if parsed.get("K") is not None else parsed.get("k"),
-        "pH": parsed.get("pH") if parsed.get("pH") is not None else parsed.get("ph"),
-        "temperature": parsed.get("temp") if parsed.get("temp") is not None else parsed.get("temperature"),
-        "humidity": parsed.get("humidity"),
-        "rainfall": parsed.get("rainfall"),
-        "latitude": parsed.get("lat") if parsed.get("lat") is not None else parsed.get("latitude"),
-        "longitude": parsed.get("lon") if parsed.get("lon") is not None else parsed.get("longitude"),
-    }
-
-    # Convert types (safe)
-    for k in ["N","P","K","pH","temperature","humidity","rainfall","latitude","longitude"]:
-        if mapped.get(k) is not None:
-            try:
-                mapped[k] = float(mapped[k])
-            except Exception:
-                mapped[k] = mapped[k]
-
-    # Fill required fields with defaults if missing (so _make_prediction can fail gracefully)
-    for required in ["N","P","K","pH","temperature","humidity","rainfall","latitude","longitude"]:
-        if mapped.get(required) is None:
-            # If a value missing, raise later in _make_prediction
-            mapped[required] = 0.0
-
-    try:
-        pi = PredictionInput(
-            N = mapped["N"],
-            P = mapped["P"],
-            K = mapped["K"],
-            pH = mapped["pH"],
-            temperature = mapped["temperature"],
-            humidity = mapped["humidity"],
-            rainfall = mapped["rainfall"],
-            latitude = mapped["latitude"],
-            longitude = mapped["longitude"],
-            place_name = parsed.get("place_name", "ESP32 Live"),
-            timestamp = parsed.get("ts")
-        )
-    except Exception as e:
-        raise
-
-    # Run prediction
-    results = _make_prediction(pi)
-
-    # Find state
-    state_name = get_state_from_coords(pi.latitude, pi.longitude)
-
-    # Build received_data for response (serializable)
-    rec = pi.dict(by_alias=False)
-    rec["state"] = state_name
-
-    # Compose final response payload
-    response_payload = {
-        "predicted_crop": results.get("predicted_crop"),
-        "confidence": results.get("confidence"),
-        "fertilizer_recommendation": results.get("fertilizer_recommendation"),
-        "disease_alerts": results.get("disease_alerts"),
-        "area_acres": results.get("area_acres"),
-        "warnings": results.get("warnings", []),
-        "received_data": rec
-    }
-
-    # Try to save to history (best effort) and tag source = "ESP32"
-    try:
-        to_save = response_payload.copy()
-        to_save["received_data"] = to_save["received_data"]
-        # add source tag for history origin
-        to_save["source"] = "ESP32"
-        save_prediction(to_save)
-    except Exception:
-        # Don't fail the pipeline if saving fails
-        pass
-
-    return response_payload
-
-def serial_reader_thread(port: str, baud: int):
-    """Thread that reads serial lines and forwards them to websocket clients and also produces predictions."""
-    try:
-        ser = serial.Serial(port=port, baudrate=baud, timeout=SERIAL_READ_TIMEOUT)
-    except Exception as e:
-        print(f"[SERIAL] Could not open serial port {port} at {baud} baud: {e}")
-        return
-
-    while not serial_thread_stop.is_set():
-        try:
-            raw = ser.readline()
-            if not raw:
-                continue
-            try:
-                line = raw.decode(errors='ignore').strip()
-            except Exception:
-                line = raw.decode('utf-8', 'ignore').strip()
-
-            if not line:
-                continue
-
-            # Attempt parse JSON; if fails, try simple k=v pairs fallback
-            parsed = None
-            try:
-                parsed = json.loads(line)
-            except Exception:
-                # parse loose "k=v k2=v2" style
-                try:
-                    obj = {}
-                    for pair in line.split():
-                        if "=" in pair:
-                            k,v = pair.split("=",1)
-                            num = None
-                            try:
-                                num = float(v)
-                            except:
-                                num = v
-                            obj[k.strip()] = num
-                    parsed = obj if obj else {"raw": line}
-                except Exception:
-                    parsed = {"raw": line}
-
-            # Broadcast sensor message
-            sensor_message = {"type":"sensor", "data": parsed}
-            try:
-                if asyncio_loop and not asyncio_loop.is_closed():
-                    asyncio.run_coroutine_threadsafe(broadcast_text(json.dumps(sensor_message)), asyncio_loop)
-            except Exception:
-                pass
-
-            # Try make prediction only when parsed has at least N,P,K or numeric keys
-            try:
-                # If parsed contains numeric keys, proceed
-                if any(k in parsed for k in ("N","P","K","n","p","k")):
-                    prediction_payload = build_prediction_payload(parsed)
-                    prediction_message = {"type":"prediction", "data": prediction_payload}
-                    if asyncio_loop and not asyncio_loop.is_closed():
-                        asyncio.run_coroutine_threadsafe(broadcast_text(json.dumps(prediction_message)), asyncio_loop)
-            except Exception:
-                # If prediction fails, ignore and continue
-                pass
-
-        except Exception as e:
-            print(f"[SERIAL] Read error: {e}")
-            time.sleep(0.5)
-
-    try:
-        ser.close()
-    except Exception:
-        pass
-    print("[SERIAL] Serial reader thread stopped")
-
-# -------------------------
-# Startup / Shutdown
-# -------------------------
-@app.on_event("startup")
-async def startup_event():
-    global asyncio_loop, serial_thread, serial_thread_stop
-    try:
-        asyncio_loop = asyncio.get_event_loop()
-    except Exception:
-        asyncio_loop = None
-
-    serial_thread_stop.clear()
-    # Start the serial thread even if device not present — it will try to open
-    serial_thread = threading.Thread(target=serial_reader_thread, args=(SERIAL_PORT, SERIAL_BAUD), daemon=True)
-    serial_thread.start()
-    print(f"[SERIAL] Serial thread started (attempting {SERIAL_PORT}).")
-
-    if model_artifacts is None:
-        print("\n[CRITICAL ERROR] MODELS ARE NOT LOADED.")
-    else:
-        print("\n[INFO] Server started successfully. Models are loaded.\n")
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    global serial_thread_stop, serial_thread
-    serial_thread_stop.set()
-    if serial_thread and serial_thread.is_alive():
-        serial_thread.join(timeout=2.0)
-    print("[SERIAL] Shutdown complete")
-
-# -------------------------
-# WebSocket endpoint (clients connect to receive serial data & predictions)
-# -------------------------
-@app.websocket("/ws/esp32")
-async def ws_esp32(websocket: WebSocket):
-    """
-    WebSocket endpoint consumed by the frontend.
-    Clients connecting here will receive messages of two types:
-      - {"type":"sensor", "data": {...}}  (raw sensor packet)
-      - {"type":"prediction", "data": {...}} (prediction response)
-    """
-    await websocket.accept()
-    connected_websockets.add(websocket)
-    try:
-        while True:
-            try:
-                _ = await websocket.receive_text()
-            except WebSocketDisconnect:
-                break
-            except Exception:
-                await asyncio.sleep(0.1)
-    finally:
-        try:
-            connected_websockets.discard(websocket)
-        except Exception:
+            ws_clients.remove(ws)
+        except KeyError:
             pass
 
-# -------------------------
-# Prediction API (unchanged except tagging saved record source = "manual")
-# -------------------------
+
+# ---------------- Core prediction helper ----------------
 def _make_prediction(input_data: PredictionInput) -> Dict[str, Any]:
-    warnings = []
+    warnings: List[str] = []
     try:
         feature_values = [
-            input_data.N, input_data.P, input_data.K, input_data.soil_ph,
-            input_data.annual_rainfall_mm, input_data.avg_temp_c, input_data.soil_moisture_pct
+            input_data.N,
+            input_data.P,
+            input_data.K,
+            input_data.soil_ph,
+            input_data.annual_rainfall_mm,
+            input_data.avg_temp_c,
+            input_data.soil_moisture_pct,
         ]
         features_np = np.array(feature_values, dtype=float).reshape(1, -1)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid feature data: {e}")
+
     scaler = model_artifacts["scaler"]
     features_scaled = scaler.transform(features_np)
+
     model = model_artifacts["crop_model"]
     le = model_artifacts["label_encoder"]
+
     pred_numeric = model.predict(features_scaled)
     pred_proba = model.predict_proba(features_scaled)
+
     crop_name = le.inverse_transform(pred_numeric)[0]
     confidence = float(np.max(pred_proba))
-    recommender = model_artifacts["fertilizer_recommender"]
-    fertilizer_rec = recommender.get_recommendation(crop_name, features=features_np.flatten())
+
+    # ---------- Fertilizer recommendation ----------
+    # 1) Prefer mapping from your dataset CSV
+    fert_from_dataset = None
+    try:
+        fert_from_dataset = FERTILIZER_MAP.get(str(crop_name).strip().lower())
+    except Exception:
+        fert_from_dataset = None
+
+    fertilizer_rec: Optional[str] = None
+
+    if fert_from_dataset:
+        fertilizer_rec = fert_from_dataset
+    else:
+        # 2) Fall back to any existing fertilizer_recommender in model_artifacts
+        recommender = None
+        try:
+            if isinstance(model_artifacts, dict):
+                recommender = model_artifacts.get("fertilizer_recommender")
+        except Exception:
+            recommender = None
+
+        if recommender is not None:
+            try:
+                fertilizer_rec = recommender.get_recommendation(
+                    crop_name, features=features_np.flatten()
+                )
+            except Exception as e:
+                warnings.append(f"Fertilizer recommender failed: {e}")
+                fertilizer_rec = None
+
+    # 3) Final fallback if nothing worked
+    if not fertilizer_rec:
+        fertilizer_rec = "No specific fertilizer found in dataset"
+
     disease_alerts = get_disease_alerts(crop_name)
+
     area_acres = None
     if input_data.polygon:
         try:
@@ -408,57 +327,300 @@ def _make_prediction(input_data: PredictionInput) -> Dict[str, Any]:
             area_acres = calculate_area_acres(polygon_data)
         except Exception as e:
             warnings.append(f"Could not calculate area: {e}")
-    return {"predicted_crop": crop_name, "confidence": confidence, "fertilizer_recommendation": fertilizer_rec,
-            "disease_alerts": disease_alerts, "area_acres": area_acres, "warnings": warnings}
 
+    return {
+        "predicted_crop": crop_name,
+        "confidence": confidence,
+        "fertilizer_recommendation": fertilizer_rec,
+        "disease_alerts": disease_alerts,
+        "area_acres": area_acres,
+        "warnings": warnings,
+    }
+
+
+# ---------------- REST endpoints for ingestion script ----------------
+@app.post("/api/sensor-data")
+async def receive_sensor_data(request: Request):
+    """
+    Accepts corrected sensor payload from ingestion script.
+    Also triggers prediction (if change is significant) and broadcasts
+    sensor + prediction via WebSocket.
+    """
+    global LAST_LIVE_FEATURES
+
+    try:
+        payload = await request.json()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON: {e}")
+
+    # Base sensor entry (what LiveFeed + history will see)
+    entry: Dict[str, Any] = {
+        "ts": payload.get("ts", time.time()),
+        "raw": payload.get("raw"),
+        "corrected": payload.get("corrected"),
+        "calibrated": payload.get("calibrated", False),
+        "received_at": time.time(),
+        # extra fields from Arduino / ingestion script
+        "ph": payload.get("ph", payload.get("pH")),
+        "temperature": payload.get("temperature", payload.get("temp")),
+        "humidity": payload.get("humidity"),
+        "moisture": payload.get("moisture"),
+        "lat": payload.get("lat", payload.get("latitude")),
+        "lon": payload.get("lon", payload.get("longitude")),
+        "place_name": payload.get("place_name"),
+    }
+
+    # Keep in-memory history
+    SENSOR_HISTORY.append(entry)
+    if len(SENSOR_HISTORY) > 1000:
+        SENSOR_HISTORY.pop(0)
+
+    # Broadcast sensor reading to all LiveFeed clients
+    await broadcast_ws({"type": "sensor", "data": entry})
+
+    # ---------------- Auto prediction ----------------
+    if model_artifacts is not None:
+        try:
+            corrected = entry.get("corrected") or {}
+            n_val = corrected.get("n", corrected.get("N", 0.0))
+            p_val = corrected.get("p", corrected.get("P", 0.0))
+            k_val = corrected.get("k", corrected.get("K", 0.0))
+
+            ph_val = entry.get("ph", 7.0)
+            temp_val = entry.get("temperature", 25.0)
+            hum_val = entry.get("humidity", 50.0)
+            rain_val = payload.get("rainfall", 0.0)  # rainfall may not be present
+            lat_val = entry.get("lat", 0.0)
+            lon_val = entry.get("lon", 0.0)
+
+            def _f(v, default=0.0):
+                try:
+                    return float(v)
+                except Exception:
+                    return float(default)
+
+            n_val = _f(n_val, 0.0)
+            p_val = _f(p_val, 0.0)
+            k_val = _f(k_val, 0.0)
+            ph_val = _f(ph_val, 7.0)
+            temp_val = _f(temp_val, 25.0)
+            hum_val = _f(hum_val, 50.0)
+            rain_val = _f(rain_val, 0.0)
+            lat_val = _f(lat_val, 0.0)
+            lon_val = _f(lon_val, 0.0)
+
+            current_features = {
+                "N": n_val,
+                "P": p_val,
+                "K": k_val,
+                "pH": ph_val,
+                "temperature": temp_val,
+                "humidity": hum_val,
+                "rainfall": rain_val,
+            }
+
+            # only predict if values moved enough
+            if not has_significant_change(
+                LAST_LIVE_FEATURES, current_features, SIGNIFICANT_THRESHOLDS
+            ):
+                return {"ok": True, "skipped_prediction": True}
+
+            LAST_LIVE_FEATURES = current_features
+
+            pi = PredictionInput(
+                N=n_val,
+                P=p_val,
+                K=k_val,
+                pH=ph_val,
+                temperature=temp_val,
+                humidity=hum_val,
+                rainfall=rain_val,
+                latitude=lat_val,
+                longitude=lon_val,
+                place_name=payload.get("place_name", "Arduino Live"),
+                timestamp=str(entry["ts"]),
+            )
+
+            results = _make_prediction(pi)
+            state_name = get_state_from_coords(pi.latitude, pi.longitude)
+
+            saved_data_dict = pi.dict(by_alias=False)
+            saved_data_dict["state"] = state_name
+            saved_data_obj = SavedPredictionData(**saved_data_dict)
+
+            response_data = {**results, "received_data": saved_data_obj}
+
+            # Save to history JSON
+            try:
+                save_payload = response_data.copy()
+                save_payload["received_data"] = save_payload["received_data"].dict()
+                save_payload["source"] = "ESP32"
+                save_prediction(save_payload)
+            except Exception as e:
+                print(f"[ERROR] Failed to save live prediction to JSON DB: {e}")
+                response_data["warnings"].append(
+                    "Failed to save live prediction to history."
+                )
+
+            # Broadcast to WebSocket clients
+            ws_payload = response_data.copy()
+            ws_payload["received_data"] = ws_payload["received_data"].dict()
+            await broadcast_ws({"type": "prediction", "data": ws_payload})
+
+        except Exception as e:
+            print(f"[ERROR] Live prediction from /api/sensor-data failed: {e}")
+
+    return {"ok": True}
+
+
+@app.post("/api/status")
+async def set_status(request: Request):
+    """Accepts {"online": true/false} from ingestion script."""
+    try:
+        payload = await request.json()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON: {e}")
+    online = bool(payload.get("online", False))
+    LAST_STATUS["online"] = online
+    LAST_STATUS["updated_at"] = time.time()
+
+    await broadcast_ws({"type": "status", "data": LAST_STATUS})
+    return {"ok": True}
+
+
+@app.post("/api/calibration")
+async def set_calibration(request: Request):
+    """Accepts calibration metadata."""
+    global LAST_CALIBRATION
+    try:
+        payload = await request.json()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON: {e}")
+
+    LAST_CALIBRATION = payload
+    await broadcast_ws({"type": "calibration", "data": LAST_CALIBRATION})
+    return {"ok": True}
+
+
+@app.get("/api/history")
+async def get_sensor_history(limit: int = 100):
+    """Return recent sensor readings (in-memory)."""
+    return SENSOR_HISTORY[-limit:]
+
+
+# ---------------- Startup / Shutdown ----------------
+@app.on_event("startup")
+async def startup_event():
+    if model_artifacts is None:
+        print("\n[CRITICAL ERROR] MODELS ARE NOT LOADED.")
+    else:
+        print("\n[INFO] Server started successfully. Models are loaded.\n")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    print("[INFO] Server shutting down.")
+
+
+# ---------------- WebSocket endpoint ----------------
+@app.websocket("/ws/esp32")
+async def ws_esp32(websocket: WebSocket):
+    """
+    Single WebSocket endpoint used by the React LiveFeed.
+    On connect:
+      - sends last status
+      - sends last calibration
+      - sends recent sensor history (up to 15)
+      - sends last saved prediction (from JSON history)
+    Then keeps the connection alive.
+    """
+    await websocket.accept()
+    ws_clients.add(websocket)
+
+    try:
+        # status
+        if LAST_STATUS["updated_at"] is not None:
+            await websocket.send_json({"type": "status", "data": LAST_STATUS})
+
+        # calibration
+        if LAST_CALIBRATION is not None:
+            await websocket.send_json({"type": "calibration", "data": LAST_CALIBRATION})
+
+        # history (last 15 readings)
+        history_slice = SENSOR_HISTORY[-15:]
+        await websocket.send_json({"type": "history", "data": history_slice})
+
+        # latest prediction from JSON DB
+        history = read_prediction_history()
+        if history:
+            latest = history[-1]
+            await websocket.send_json({"type": "prediction", "data": latest})
+
+        # keep connection alive
+        while True:
+            await asyncio.sleep(30)
+
+    except WebSocketDisconnect:
+        pass
+    finally:
+        if websocket in ws_clients:
+            ws_clients.remove(websocket)
+
+
+# ---------------- Manual prediction API ----------------
 @app.get("/")
 def get_root():
     if model_artifacts is None:
         return {"status": "error", "message": "Models are not loaded."}
     return {"status": "ok", "message": "Offline ML Server is running."}
 
+
 @app.post("/predict_crop", response_model=PredictionResponse)
 def post_predict_crop(input_data: PredictionInput):
     if model_artifacts is None:
         raise HTTPException(status_code=503, detail="Models are not loaded.")
-    
+
     try:
         results = _make_prediction(input_data)
-        state_name = get_state_from_coords(input_data.latitude, input_data.longitude)
-        
+        state_name = get_state_from_coords(
+            input_data.latitude, input_data.longitude
+        )
+
         saved_data_dict = input_data.dict(by_alias=False)
-        saved_data_dict['state'] = state_name
+        saved_data_dict["state"] = state_name
         saved_data_obj = SavedPredictionData(**saved_data_dict)
-        
+
         response_data = {**results, "received_data": saved_data_obj}
-        
+
         try:
             save_payload = response_data.copy()
             save_payload["received_data"] = save_payload["received_data"].dict()
-            # tag manual/form source
             save_payload["source"] = "manual"
             save_prediction(save_payload)
             print("[INFO] Prediction successfully saved to db/predictions.json")
         except Exception as e:
             print(f"[ERROR] Failed to save prediction to JSON DB: {e}")
-            response_data["warnings"].append("Failed to save prediction to history.")
+            response_data["warnings"].append(
+                "Failed to save prediction to history."
+            )
 
         return response_data
-        
     except Exception as e:
         print(f"[ERROR] Unhandled error in /predict_crop: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/history")
 def get_history():
     return read_prediction_history()
 
-# --- THIS IS THE "BEAUTIFIED" OFFLINE MAP ENDPOINT (unchanged) ---
+
+# ---------------- Offline map endpoint ----------------
 @app.get("/history_map/{prediction_id}.png")
 def get_history_map_image(prediction_id: str):
     history = read_prediction_history()
     record = next((item for item in history if item.get("id") == prediction_id), None)
-    
+
     if record is None:
         raise HTTPException(status_code=404, detail="Prediction not found")
 
@@ -467,55 +629,78 @@ def get_history_map_image(prediction_id: str):
     lon = data.get("longitude")
     state_name = data.get("state", None)
     polygon_data = data.get("polygon")
-    
+
     fig, ax = plt.subplots(figsize=(8, 8))
-    fig.patch.set_facecolor('#aadaff')
-    ax.set_facecolor('#aadaff')
-    
+    fig.patch.set_facecolor("#aadaff")
+    ax.set_facecolor("#aadaff")
+
     if STATE_BOUNDARIES is not None:
-        STATE_BOUNDARIES.plot(ax=ax, facecolor='#eeeeee', edgecolor='#999999', linewidth=0.5)
+        STATE_BOUNDARIES.plot(
+            ax=ax, facecolor="#eeeeee", edgecolor="#999999", linewidth=0.5
+        )
     else:
-        ax.text(0.5, 0.5, 'india_states.geojson file missing',
-                horizontalalignment='center',
-                verticalalignment='center',
-                transform=ax.transAxes,
-                fontsize=12, color='red')
+        ax.text(
+            0.5,
+            0.5,
+            "india_states.geojson file missing",
+            horizontalalignment="center",
+            verticalalignment="center",
+            transform=ax.transAxes,
+            fontsize=12,
+            color="red",
+        )
 
     if state_name and STATE_BOUNDARIES is not None:
         state_col = None
-        if 'NAME_1' in STATE_BOUNDARIES.columns: state_col = 'NAME_1'
-        elif 'st_nm' in STATE_BOUNDARIES.columns: state_col = 'st_nm'
-        elif 'state' in STATE_BOUNDARIES.columns: state_col = 'state'
-        
+        if "NAME_1" in STATE_BOUNDARIES.columns:
+            state_col = "NAME_1"
+        elif "st_nm" in STATE_BOUNDARIES.columns:
+            state_col = "st_nm"
+        elif "state" in STATE_BOUNDARIES.columns:
+            state_col = "state"
+
         if state_col:
             highlight_state = STATE_BOUNDARIES[STATE_BOUNDARIES[state_col] == state_name]
             if not highlight_state.empty:
-                highlight_state.plot(ax=ax, facecolor='orange', edgecolor='black', linewidth=1.0)
+                highlight_state.plot(
+                    ax=ax,
+                    facecolor="orange",
+                    edgecolor="black",
+                    linewidth=1.0,
+                )
 
     if polygon_data and len(polygon_data) >= 3:
-        poly_coords = [(p['lng'], p['lat']) for p in polygon_data]
+        poly_coords = [(p["lng"], p["lat"]) for p in polygon_data]
         poly_shape = Polygon(poly_coords)
         gpd.GeoSeries([poly_shape]).plot(
             ax=ax,
-            facecolor='green',
-            edgecolor='darkgreen',
+            facecolor="green",
+            edgecolor="darkgreen",
             alpha=0.7,
-            label='Field Boundary'
+            label="Field Boundary",
         )
-    
+
     if lat and lon:
-        ax.plot(lon, lat, 'o', color='red', markersize=8, markeredgecolor='white', label='Prediction Point')
-        
+        ax.plot(
+            lon,
+            lat,
+            "o",
+            color="red",
+            markersize=8,
+            markeredgecolor="white",
+            label="Prediction Point",
+        )
+
     title = data.get("place_name", "Prediction Location")
     if state_name:
         title = f"{title}\n(State: {state_name})"
     ax.set_title(title, fontsize=14)
-    
-    ax.set_aspect('equal')
-    ax.axis('off')
-    
+
+    ax.set_aspect("equal")
+    ax.axis("off")
+
     img_buffer = io.BytesIO()
-    fig.savefig(img_buffer, format='png', bbox_inches='tight', pad_inches=0.1)
+    fig.savefig(img_buffer, format="png", bbox_inches="tight", pad_inches=0.1)
     plt.close(fig)
     img_buffer.seek(0)
     return StreamingResponse(img_buffer, media_type="image/png")

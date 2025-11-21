@@ -1,289 +1,256 @@
-// frontend/src/components/StartPrediction.js
+// src/components/StartPrediction.js
 import React, { useState } from "react";
-import axios from "axios";
-import { motion } from "framer-motion";
 import AnimatedResult from "./AnimatedResult";
-import LiveFeed from "./LiveFeed";
+import "../App.css";
 
-const LoadingSpinner = () => (
-  <div className="spinner-container">
-    <div className="loading-spinner"></div>
-  </div>
-);
+const initialForm = {
+  N: "",
+  P: "",
+  K: "",
+  pH: "",
+  temperature: "",
+  humidity: "",
+  rainfall: "",
+  latitude: "",
+  longitude: "",
+};
 
-function StartPrediction(props) {
-  const {
-    N,
-    setN,
-    P,
-    setP,
-    K,
-    setK,
-    pH,
-    setpH,
-    temperature,
-    setTemperature,
-    humidity,
-    setHumidity,
-    rainfall,
-    setRainfall,
-    latitude,
-    setLatitude,
-    longitude,
-    setLongitude,
-    prediction,
-    setPrediction,
-    error,
-    setError,
-    isLoading,
-    setIsLoading,
-  } = props;
+const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8000";
 
-  const [isLive, setIsLive] = useState(false);
+function StartPrediction() {
+  const [form, setForm] = useState(initialForm);
+  const [prediction, setPrediction] = useState(null);
+  const [error, setError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleFormSubmit = async (event) => {
-    event.preventDefault();
-    setIsLoading(true);
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setError(null);
-    setPrediction(null);
-
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    setIsSubmitting(true);
 
     try {
-      const dataToSend = {
-        N: parseFloat(N),
-        P: parseFloat(P),
-        K: parseFloat(K),
-        pH: parseFloat(pH),
-        temperature: parseFloat(temperature),
-        humidity: parseFloat(humidity),
-        rainfall: parseFloat(rainfall),
-        latitude: parseFloat(latitude),
-        longitude: parseFloat(longitude),
-        place_name: "User Form Input",
-        polygon: [
-          { lat: parseFloat(latitude), lng: parseFloat(longitude) },
-          {
-            lat: parseFloat(latitude) + 0.001,
-            lng: parseFloat(longitude) + 0.001,
-          },
-          { lat: parseFloat(latitude), lng: parseFloat(longitude) + 0.001 },
-        ],
+      const payload = {
+        N: Number(form.N),
+        P: Number(form.P),
+        K: Number(form.K),
+        pH: Number(form.pH),
+        temperature: Number(form.temperature),
+        humidity: Number(form.humidity),
+        rainfall: Number(form.rainfall),
+        latitude: Number(form.latitude),
+        longitude: Number(form.longitude),
       };
 
-      const response = await axios.post("/predict_crop", dataToSend);
-      setPrediction(response.data);
-    } catch (err) {
-      console.error("Prediction error:", err);
-      if (err.response) {
-        setError(
-          `Server Error: ${err.response.data.detail || err.response.statusText}`
+      const res = await fetch(`${API_BASE}/predict_crop`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const txt = await res.text();
+        console.error("Prediction error response:", txt);
+        throw new Error(
+          `Server error (${res.status}): ${txt || res.statusText}`
         );
-      } else if (err.request) {
-        setError("Cannot connect to server. Is the server running?");
-      } else {
-        setError(`Error: ${err.message}. Please check your input values.`);
       }
+
+      const data = await res.json();
+      console.log("Prediction response:", data);
+      setPrediction(data);
+      setError(null);
+    } catch (err) {
+      console.error("Prediction request failed:", err);
+      setPrediction(null);
+      setError(
+        "Could not get a prediction from the server. Check if the backend (FastAPI) is running and see its console for errors."
+      );
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  const formVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.45 } },
-  };
-
   return (
-    <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={formVariants}
-      className="prediction-form-container"
-      style={{ maxWidth: 920, margin: "0 auto", padding: "24px" }}
-    >
-      {/* Live feed on top */}
-      <div style={{ marginBottom: 32 }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 12,
-          }}
-        >
-          <h2 style={{ fontSize: "1.5rem", color: "#2F80ED", margin: 0 }}>
-            🌿 Live ESP32 Sensor Feed
-          </h2>
-          <span
-            style={{
-              fontSize: "0.9rem",
-              background: isLive ? "#e63946" : "#6b7280",
-              color: "white",
-              padding: "6px 10px",
-              borderRadius: 12,
-              fontWeight: 600,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-              transition: "all 0.25s ease",
-            }}
-          >
-            {isLive ? "LIVE 🔴" : "OFFLINE ⚫"}
-          </span>
+    <div className="tab-panel manual-tab">
+      <div className="live-card manual-card">
+        {/* Header row for this card */}
+        <div className="card-header">
+          <div>
+            <h2>Manual Prediction</h2>
+          </div>
+          <span className="badge badge-manual">Manual Input</span>
         </div>
 
-        <LiveFeed
-          wsUrl={`ws://${window.location.hostname}:8000/ws/esp32`}
-          onStatusChange={(status) => setIsLive(status === "online")}
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="grid-form">
+          {/* N */}
+          <div className="form-group">
+            <label className="input-label" htmlFor="N">
+              🌱 N
+            </label>
+            <input
+              id="N"
+              name="N"
+              type="number"
+              value={form.N}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          {/* P */}
+          <div className="form-group">
+            <label className="input-label" htmlFor="P">
+              🌿 P
+            </label>
+            <input
+              id="P"
+              name="P"
+              type="number"
+              value={form.P}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          {/* K */}
+          <div className="form-group">
+            <label className="input-label" htmlFor="K">
+              🌾 K
+            </label>
+            <input
+              id="K"
+              name="K"
+              type="number"
+              value={form.K}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          {/* pH */}
+          <div className="form-group">
+            <label className="input-label" htmlFor="pH">
+              🍋 pH
+            </label>
+            <input
+              id="pH"
+              name="pH"
+              type="number"
+              step="0.01"
+              value={form.pH}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          {/* Temperature */}
+          <div className="form-group">
+            <label className="input-label" htmlFor="temperature">
+              🌡 Temp (°C)
+            </label>
+            <input
+              id="temperature"
+              name="temperature"
+              type="number"
+              step="0.1"
+              value={form.temperature}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          {/* Humidity */}
+          <div className="form-group">
+            <label className="input-label" htmlFor="humidity">
+              💧 Humidity (%)
+            </label>
+            <input
+              id="humidity"
+              name="humidity"
+              type="number"
+              step="0.1"
+              value={form.humidity}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          {/* Rainfall */}
+          <div className="form-group">
+            <label className="input-label" htmlFor="rainfall">
+              🌧 Rainfall (mm)
+            </label>
+            <input
+              id="rainfall"
+              name="rainfall"
+              type="number"
+              step="0.1"
+              value={form.rainfall}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          {/* Latitude */}
+          <div className="form-group">
+            <label className="input-label" htmlFor="latitude">
+              📍 Lat
+            </label>
+            <input
+              id="latitude"
+              name="latitude"
+              type="number"
+              step="0.000001"
+              value={form.latitude}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          {/* Longitude */}
+          <div className="form-group">
+            <label className="input-label" htmlFor="longitude">
+              📍 Lon
+            </label>
+            <input
+              id="longitude"
+              name="longitude"
+              type="number"
+              step="0.000001"
+              value={form.longitude}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          {/* Errors */}
+          {error && <div className="form-error">{error}</div>}
+
+          {/* Button */}
+          <button type="submit" className="primary-btn" disabled={isSubmitting}>
+            {isSubmitting ? "Predicting…" : "Predict Crop"}
+          </button>
+        </form>
+
+        {/* Result card (only shows once we have a prediction or an error) */}
+        <AnimatedResult
+          prediction={prediction}
+          loading={isSubmitting}
+          error={error}
         />
       </div>
-
-      {/* Manual input form below (styled like LiveFeed card) */}
-      {isLoading && <LoadingSpinner />}
-
-      <div className="manual-card live-like-card">
-        <form
-          onSubmit={handleFormSubmit}
-          className="manual-metrics-layout"
-          aria-label="Manual input form"
-        >
-          <h2 className="manual-title">✋ Manual Input Section</h2>
-
-          {/* Metric-style tiles (two-column grid) */}
-          <div className="manual-metrics-grid">
-            <div className="input-tile">
-              <div className="tile-label">🌿 N</div>
-              <input
-                type="number"
-                value={N}
-                onChange={(e) => setN(e.target.value)}
-                step="0.1"
-                required
-                className="tile-input"
-              />
-            </div>
-
-            <div className="input-tile">
-              <div className="tile-label">🌾 P</div>
-              <input
-                type="number"
-                value={P}
-                onChange={(e) => setP(e.target.value)}
-                step="0.1"
-                required
-                className="tile-input"
-              />
-            </div>
-
-            <div className="input-tile">
-              <div className="tile-label">🧪 K</div>
-              <input
-                type="number"
-                value={K}
-                onChange={(e) => setK(e.target.value)}
-                step="0.1"
-                required
-                className="tile-input"
-              />
-            </div>
-
-            <div className="input-tile">
-              <div className="tile-label">🍋 pH</div>
-              <input
-                type="number"
-                value={pH}
-                onChange={(e) => setpH(e.target.value)}
-                step="0.01"
-                required
-                className="tile-input"
-              />
-            </div>
-
-            <div className="input-tile">
-              <div className="tile-label">🌡️ Temp (°C)</div>
-              <input
-                type="number"
-                value={temperature}
-                onChange={(e) => setTemperature(e.target.value)}
-                step="0.1"
-                required
-                className="tile-input"
-              />
-            </div>
-
-            <div className="input-tile">
-              <div className="tile-label">💧 Humidity (%)</div>
-              <input
-                type="number"
-                value={humidity}
-                onChange={(e) => setHumidity(e.target.value)}
-                step="0.1"
-                required
-                className="tile-input"
-              />
-            </div>
-
-            <div className="input-tile">
-              <div className="tile-label">🌧️ Rainfall</div>
-              <input
-                type="number"
-                value={rainfall}
-                onChange={(e) => setRainfall(e.target.value)}
-                step="0.1"
-                required
-                className="tile-input"
-              />
-            </div>
-
-            <div className="input-tile">
-              <div className="tile-label">📍 Lat</div>
-              <input
-                type="number"
-                value={latitude}
-                onChange={(e) => setLatitude(e.target.value)}
-                step="0.000001"
-                required
-                className="tile-input"
-              />
-            </div>
-
-            <div className="input-tile">
-              <div className="tile-label">📍 Lon</div>
-              <input
-                type="number"
-                value={longitude}
-                onChange={(e) => setLongitude(e.target.value)}
-                step="0.000001"
-                required
-                className="tile-input"
-              />
-            </div>
-          </div>
-
-          <div className="manual-actions">
-            <button
-              type="submit"
-              className="predict-button"
-              disabled={isLoading}
-            >
-              {isLoading ? "Predicting..." : "Predict Crop"}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {error && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="error-box"
-        >
-          <h3>Error</h3>
-          <pre>{error}</pre>
-        </motion.div>
-      )}
-
-      {prediction && <AnimatedResult data={prediction} />}
-    </motion.div>
+    </div>
   );
 }
 

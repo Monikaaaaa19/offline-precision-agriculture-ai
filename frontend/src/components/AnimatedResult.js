@@ -1,134 +1,125 @@
-// frontend/src/components/AnimatedResult.js
-import React, { Suspense } from "react";
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Text } from "@react-three/drei";
-import { motion } from "framer-motion";
+// src/components/AnimatedResult.js
+import React from "react";
+import "./AnimatedResult.css";
 
-// A simple 3D shape (a spinning box)
-function SpinningBox() {
-  return (
-    <mesh rotation={[0.5, 0.7, 0]}>
-      <boxGeometry args={[2, 2, 2]} />
-      <meshStandardMaterial color="#007aff" />
-    </mesh>
-  );
-}
+function AnimatedResult({ prediction, loading, error }) {
+  if (loading) {
+    return (
+      <div className="prediction-card prediction-card-empty">
+        <p className="prediction-title">Running prediction…</p>
+        <p className="prediction-subtitle">
+          Analysing your soil and environment inputs.
+        </p>
+      </div>
+    );
+  }
 
-function AnimatedResult({ data }) {
-  // We get all the data from the 'prediction' object
+  if (!prediction && !error) {
+    // Nothing to show yet
+    return null;
+  }
+
+  if (error && !prediction) {
+    return (
+      <div className="prediction-card prediction-card-empty">
+        <p className="prediction-title">Prediction Failed</p>
+        <p className="prediction-error-text">{error}</p>
+      </div>
+    );
+  }
+
   const {
     predicted_crop,
     confidence,
     fertilizer_recommendation,
-    disease_alerts,
-    received_data, // This object contains the state name
-  } = data;
+    disease_alerts = [],
+    received_data,
+  } = prediction;
 
-  // Animation variants for framer-motion
-  const containerVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { staggerChildren: 0.1 } },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, x: -10 },
-    visible: { opacity: 1, x: 0 },
-  };
+  const state = received_data?.state ?? "Unknown";
+  const confPercent =
+    typeof confidence === "number"
+      ? Math.round(confidence * 100)
+      : null;
 
   return (
-    <motion.div
-      style={styles.container}
-      className="result-container" // Use App.css styles
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      <h2 style={styles.header} className="result-header">
-        Prediction Successful!
-      </h2>
+    <div className="prediction-card">
+      <div className="prediction-header-row">
+        <div>
+          <p className="prediction-title">Prediction Successful</p>
+          <p className="prediction-subtitle">
+            {received_data?.place_name
+              ? `User Form Input – ${received_data.place_name}`
+              : "User Form Input"}
+          </p>
+        </div>
 
-      {/* 3D Viewer Section */}
-      <div style={styles.canvasContainer} className="result-canvas">
-        <Canvas>
-          <Suspense fallback={null}>
-            <ambientLight intensity={0.5} />
-            <pointLight position={[10, 10, 10]} />
-            <SpinningBox />
-            <Text
-              position={[0, 0, 1.1]}
-              fontSize={0.3}
-              color="white"
-              anchorX="center"
-              anchorY="middle"
-            >
-              {predicted_crop}
-            </Text>
-            <OrbitControls enableZoom={false} autoRotate={true} />
-          </Suspense>
-        </Canvas>
+        <div className="prediction-chip">
+          <div className="prediction-chip-label">Predicted Crop</div>
+          <div className="prediction-chip-value">
+            {predicted_crop || "—"}
+          </div>
+        </div>
       </div>
 
-      {/* --- Results Details Section --- */}
+      {/* Confidence bar */}
+      {confPercent !== null && (
+        <div className="prediction-confidence">
+          <div className="prediction-confidence-label">
+            Model Confidence
+          </div>
+          <div className="prediction-confidence-bar">
+            <div
+              className="prediction-confidence-fill"
+              style={{ width: `${Math.min(100, confPercent)}%` }}
+            />
+          </div>
+          <div className="prediction-confidence-value">
+            {confPercent}%
+          </div>
+        </div>
+      )}
 
-      {/* --- NEW: Added State Name Display --- */}
-      <motion.div
-        style={styles.details}
-        className="result-details"
-        variants={itemVariants}
-      >
-        <strong>📍 State / Region:</strong>
-        {/* We get the state name from the 'received_data' object */}
-        <span>{received_data.state || "N/A"}</span>
-      </motion.div>
-      {/* ---------------------------------- */}
+      {/* Details grid */}
+      <div className="prediction-details-grid">
+        <div className="prediction-detail-row">
+          <span className="prediction-detail-label">State / Region</span>
+          <span className="prediction-detail-value">{state}</span>
+        </div>
 
-      <motion.div
-        style={styles.details}
-        className="result-details"
-        variants={itemVariants}
-      >
-        <strong>🌱 Predicted Crop:</strong>
-        <span>
-          {predicted_crop} ({(confidence * 100).toFixed(1)}%)
-        </span>
-      </motion.div>
+        <div className="prediction-detail-row">
+          <span className="prediction-detail-label">Predicted Crop</span>
+          <span className="prediction-detail-value">
+            {predicted_crop || "—"}
+          </span>
+        </div>
 
-      <motion.div
-        style={styles.details}
-        className="result-details"
-        variants={itemVariants}
-      >
-        <strong>🧪 Fertilizer:</strong>
-        <span>{fertilizer_recommendation}</span>
-      </motion.div>
+        <div className="prediction-detail-row">
+          <span className="prediction-detail-label">
+            Fertilizer Recommendation
+          </span>
+          <span className="prediction-detail-value">
+            {fertilizer_recommendation || "—"}
+          </span>
+        </div>
 
-      <motion.div
-        style={styles.details}
-        className="result-details"
-        variants={itemVariants}
-      >
-        <strong>🐞 Disease Alerts:</strong>
-        <span>{disease_alerts.join(", ")}</span>
-      </motion.div>
-    </motion.div>
+        <div className="prediction-detail-row prediction-detail-row--diseases">
+          <span className="prediction-detail-label">Disease Alerts</span>
+          <div className="prediction-disease-tags">
+            {disease_alerts && disease_alerts.length > 0 ? (
+              disease_alerts.map((d) => (
+                <span key={d} className="prediction-tag">
+                  {d}
+                </span>
+              ))
+            ) : (
+              <span className="prediction-detail-value">—</span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
-
-// Basic styling (will be overridden by App.css)
-const styles = {
-  header: {
-    textAlign: "center",
-    color: "#333",
-    borderBottom: "1px solid #ddd",
-    paddingBottom: "10px",
-  },
-  details: {
-    display: "flex",
-    justifyContent: "space-between",
-    padding: "10px 0",
-    borderBottom: "1px solid #eee",
-    fontSize: "0.95rem",
-  },
-};
 
 export default AnimatedResult;

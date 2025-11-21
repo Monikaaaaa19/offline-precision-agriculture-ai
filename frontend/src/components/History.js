@@ -1,117 +1,153 @@
-// frontend/src/components/History.js
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+// src/components/History.js
+import React, { useEffect, useState } from "react";
+import "../App.css";
 
-// A simple loading spinner
-const LoadingSpinner = () => (
-  <div className="history-spinner-container">
-    <div className="loading-spinner"></div>
-  </div>
-);
-
-function History() {
-  const [history, setHistory] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+const History = () => {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // This useEffect runs once when the component mounts
   useEffect(() => {
     const fetchHistory = async () => {
-      setIsLoading(true);
-      setError(null);
       try {
-        // Fetch data from our server's /history endpoint
-        const response = await axios.get("/history");
-        // We reverse the array so the newest predictions are first
-        setHistory(response.data.reverse());
+        setLoading(true);
+        setError(null);
+
+        // Use absolute backend URL; change to "/history" if you proxy through Vite/CRA
+        const res = await fetch("http://localhost:8000/history");
+        if (!res.ok) {
+          throw new Error(`Server responded with ${res.status}`);
+        }
+
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          // newest first
+          setItems([...data].reverse());
+        } else {
+          setItems([]);
+        }
       } catch (err) {
-        console.error("Error fetching history:", err);
-        setError("Could not connect to server to fetch history.");
+        console.error("Failed to load history", err);
+        setError("Could not load prediction history.");
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
     fetchHistory();
   }, []);
 
-  if (isLoading) {
-    return <LoadingSpinner />;
-  }
-
-  if (error) {
-    return <div className="error-box">{error}</div>;
-  }
-
-  if (history.length === 0) {
-    return (
-      <div className="history-container">
-        <h2>Prediction History</h2>
-        <p>No predictions have been saved yet.</p>
-        <p>Run a prediction from the "Start" tab to see it here.</p>
-      </div>
-    );
-  }
-
-  // --- Helper to render the OFFLINE map image ---
-  const renderMap = (record) => {
-    const { latitude, longitude } = record.received_data;
-
-    // Check if the record has location data
-    if (latitude && longitude) {
-      // The image URL now points to our new FastAPI endpoint
-      // This is 100% OFFLINE
-      const imageUrl = `/history_map/${record.id}.png`;
-      return (
-        <img
-          src={imageUrl}
-          alt={`Map for Prediction ${record.id}`}
-          className="offline-map-image" // We'll add a style for this
-        />
-      );
+  const formatTimestamp = (raw) => {
+    if (!raw) return "—";
+    try {
+      // handle epoch seconds or ISO strings
+      if (typeof raw === "number") {
+        return new Date(raw * 1000).toLocaleString();
+      }
+      return new Date(raw).toLocaleString();
+    } catch {
+      return String(raw);
     }
-    // This is for old records that had no location
-    return (
-      <div className="history-map-placeholder">No location data provided.</div>
-    );
   };
 
   return (
-    <div className="history-container">
-      <h2>Prediction History</h2>
-      <p>Showing the {history.length} most recent predictions.</p>
-
-      <div className="history-list">
-        {history.map((record) => (
-          <div className="history-card" key={record.id}>
-            <div className="history-card-details">
-              <h3>{record.received_data.place_name || "Unnamed Prediction"}</h3>
-
-              {/* --- NEW: Display State Name --- */}
-              <p>
-                <strong>State:</strong> {record.received_data.state || "N/A"}
-              </p>
-              {/* ----------------------------- */}
-
-              <p>
-                <strong>Predicted Crop:</strong> {record.predicted_crop}
-              </p>
-              <p>
-                <strong>Alerts:</strong> {record.disease_alerts.join(", ")}
-              </p>
-              <p>
-                <strong>Fertilizer:</strong> {record.fertilizer_recommendation}
-              </p>
-              <p className="history-timestamp">
-                Saved at: {new Date(record.saved_at).toLocaleString()}
-              </p>
-            </div>
-            <div className="history-card-map">{renderMap(record)}</div>
+    <div className="history-card">
+      <div className="history-header-row">
+        <div>
+          <div className="history-title">Prediction History</div>
+          <div className="history-subtitle">
+            Showing the {items.length} most recent predictions.
           </div>
-        ))}
+        </div>
       </div>
+
+      {loading && (
+        <div className="history-spinner-container">
+          <div className="loading-spinner" />
+        </div>
+      )}
+
+      {error && <div className="history-error">{error}</div>}
+
+      {!loading && !error && items.length === 0 && (
+        <div className="history-helper-text">
+          No predictions saved yet. Run a manual prediction or wait for live
+          Arduino data to start building history.
+        </div>
+      )}
+
+      {!loading && !error && items.length > 0 && (
+        <div className="history-list">
+          {items.map((item, idx) => {
+            const rd = item.received_data || {};
+            const place = rd.place_name || "Arduino Field";
+            const state = rd.state || "Unknown";
+            const crop = item.predicted_crop || "-";
+            const fertilizer = item.fertilizer_recommendation || "-";
+            const alerts = Array.isArray(item.disease_alerts)
+              ? item.disease_alerts
+              : [];
+            const ts =
+              item.saved_at || item.created_at || item.timestamp || item.ts;
+            const formattedTs = formatTimestamp(ts);
+
+            const id = item.id != null ? item.id : idx;
+            const mapUrl =
+              item.id != null ? `/history_map/${item.id}.png` : null;
+
+            return (
+              <div key={id} className="history-item-card">
+                <div className="history-item-main">
+                  <div className="history-item-title">{place}</div>
+
+                  <div className="history-row">
+                    <span className="history-label">State:</span>
+                    <span>{state}</span>
+                  </div>
+
+                  <div className="history-row">
+                    <span className="history-label">Predicted Crop:</span>
+                    <span>{crop}</span>
+                  </div>
+
+                  <div className="history-row">
+                    <span className="history-label">Alerts:</span>
+                    <span>
+                      {alerts.length ? alerts.join(", ") : "No major alerts"}
+                    </span>
+                  </div>
+
+                  <div className="history-row">
+                    <span className="history-label">Fertilizer:</span>
+                    <span>{fertilizer}</span>
+                  </div>
+
+                  <div className="history-row-muted">
+                    <span className="history-label">Saved at: </span>
+                    <span>{formattedTs}</span>
+                  </div>
+                </div>
+
+                <div className="history-item-map">
+                  {mapUrl ? (
+                    <img
+                      src={mapUrl}
+                      alt={`Location map for ${place}`}
+                      className="offline-map-image"
+                    />
+                  ) : (
+                    <div className="history-map-placeholder">
+                      No map available for this prediction.
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
-}
+};
 
 export default History;
