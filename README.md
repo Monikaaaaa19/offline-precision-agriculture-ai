@@ -1,195 +1,146 @@
-🌱 Robust Offline Smart Agriculture System Using ESP32 & Machine Learning
+# Real-Time Offline AI System for Sensor-Integrated Precision Agriculture
 
-This project is a fully offline, real-time smart agriculture system that reads live sensor data from an ESP32, performs machine learning predictions, generates fertilizer recommendations, raises disease alerts, and displays everything in a clean React web dashboard — all without internet.
+This project presents an end-to-end _offline, sensor-driven agricultural intelligence system_ capable of performing real-time soil analysis, crop prediction, fertilizer recommendation, disease risk estimation, and spatial field mapping **without internet dependency**. The system integrates multi-sensor hardware, machine learning models, and local geospatial analytics to support precision agriculture in connectivity-constrained environments.
 
-It is designed for remote agricultural areas where network connectivity is poor or unavailable.
+---
 
-⸻
+## **1. Overview**
 
-🚀 Features
+Traditional digital agriculture solutions rely heavily on cloud connectivity and remote inference infrastructure, making them unsuitable for rural agricultural zones with limited network access. This project addresses this gap by enabling **fully offline data acquisition, model inference, mapping, and advisory generation**, powered by:
 
-✔️ Real-time ESP32 Sensor Feed (USB Serial → WebSocket)
-• Reads NPK, pH, temperature, humidity, soil moisture, rainfall, latitude, longitude
-• Data flows automatically into the web app
-• Smooth live UI with animated metric tiles
+- Local ML inference (Joblib models)
+- Real-time NPK + environmental sensing via Arduino
+- Automatic geolocation-based crop suitability
+- Local disease risk retrieval
+- Offline map rendering and state-boundary overlay
+- Manual input and historical analytics interface
 
-✔️ Offline ML Prediction
-• Predicts the best crop to grow
-• Shows confidence percentage
-• Provides fertilizer recommendations
-• Generates disease alerts based on conditions
-• Works 100% offline — no cloud API needed
+The system can operate autonomously in remote fields using local compute hardware (e.g., Raspberry Pi or laptop) paired with an Arduino sensor unit.
 
-✔️ Manual Input Mode
-• Enter sensor values manually when ESP32 is not connected
+---
 
-✔️ History Tracking
-• Every prediction is saved in a local JSON “database”
-• Includes timestamp, sensor values, crop result, fertilizer & disease alerts
-• Generates offline map images showing user’s state in India
+## **2. Core Contributions**
 
-✔️ Offline Map Generation
-• No Google Maps / API keys required
-• Uses GeoPandas + Matplotlib to draw India map and highlight exact state
+| Contribution                                 | Description                                                                       |
+| -------------------------------------------- | --------------------------------------------------------------------------------- |
+| **Offline AI Inference Pipeline**            | All predictions occur locally without cloud APIs or network calls.                |
+| **Multi-Sensor Acquisition**                 | Live soil nutrient readings (NPK), pH, temperature, humidity, rainfall, location. |
+| **Dataset-Driven Fertilizer Recommendation** | Recommendations derived from empirical dataset rather than static rules.          |
+| **Real-Time WebSocket Streaming**            | Streaming pipeline from Arduino → FastAPI → React UI.                             |
+| **Offline Geographic Mapping**               | Field boundaries plotted using local GeoJSON + Matplotlib.                        |
+| **Spatial Crop Suitability Modelling**       | State lookup via geospatial boundaries & coordinate inference.                    |
 
-✔️ Clean, Professional UI
-• Live Feed at the top
-• Manual input below
-• Beautiful History viewer
-• Smooth animations & consistent look
+---
 
-⸻
+## **3. System Architecture**
 
-🧩 System Architecture
+┌───────────┐ USB/Serial ┌──────────────┐
+│ Arduino │ ───────────────▶ │ Python Ingest │
+│ (NPK + pH)│ │ Script │
+└───────────┘ └──────────────┘
+(POST / WebSocket)
+│
+▼
+┌──────────────────┐
+│ FastAPI Backend │
+│ - ML Models │
+│ - Geospatial │
+│ - History Store │
+└──────────────────┘
+│ WebSocket
+▼
+┌──────────────────┐
+│ React Frontend │
+│ - Live Feed │
+│ - Manual Input │
+│ - History Maps │
+└──────────────────┘
 
-ESP32 (USB Serial)
-|
-scripts/ingest_from_esp32.py
-| (parses JSON / k=v)
-v
-FastAPI Backend ← ML models (RandomForest + Scaler + LabelEncoder)
-|
-WebSocket broadcast for live data
-|
-React Frontend (LiveFeed + Manual + History)
-|
-Local JSON DB (History)
+---
 
-Everything stays local — nothing leaves your device.
+## **4. Features**
 
-⸻
+### **4.1 Real-Time Live Sensor Feed**
 
-📡 Components Overview
+- Serial ingestion via Python script
+- Calibration-aware corrected values
+- Auto-prediction on significant change thresholds
 
-1. ESP32
+### **4.2 Offline Prediction Engine**
 
-Reads sensor values every 2–3 seconds and prints JSON over serial.
-Example output:
+- Model trained on crop–soil–climate dataset
+- Scikit-learn based pipeline exported as Joblib
 
-{"N":30,"P":20,"K":80,"pH":6.5,"temp":26,"humidity":58,"soil":40,"rainfall":1.2,"lat":12.97,"lon":77.59}
+### **4.3 Fertilizer Recommendation**
 
-⸻
+- Derived directly from the dataset (`arginode_corrected_fertilizers.csv`)
+- No default static recommendation
 
-2. Serial Ingestion Script
+### **4.4 Local Geospatial Analysis**
 
-scripts/ingest_from_esp32.py
-• Detects the correct USB port
-• Reads ESP32 serial output
-• Converts to JSON
-• Sends to backend via WebSocket
-• Also supports simulation (--simulate) without hardware
+- State boundary lookup from `india_states.geojson`
+- Field polygon → area calculation (acres)
+- Matplotlib map export
 
-⸻
+---
 
-3. FastAPI Backend
+## **5. Tech Stack**
 
-server/main.py
-• Loads machine learning models
-• Accepts ESP32 data via WebSocket /ws/esp32
-• Exposes /predict_crop for manual input & ESP32 predictions
-• Saves all predictions to db/predictions.json
-• Generates offline map PNGs /history_map/{id}.png
+| Layer                  | Technology                                          |
+| ---------------------- | --------------------------------------------------- |
+| **Frontend**           | React, WebSockets, CSS UI components                |
+| **Backend**            | FastAPI, NumPy, scikit-learn, matplotlib, GeoPandas |
+| **Hardware Interface** | Arduino + Sensors (NPK, pH, Temp, Humidity, Rain)   |
+| **Storage**            | Local JSON-based history logging                    |
+| **Deployment Target**  | Offline Raspberry Pi / Local laptop                 |
 
-⸻
+---
 
-4. Machine Learning Models
-   • crop_model.joblib → RandomForest crop classifier
-   • scaler.joblib → Normalizes sensor inputs
-   • label_encoder.joblib → Converts model output → crop names
-   • fertilizer_recommender.py → Suggests fertilizer
-   • get_disease_alerts() → Adds disease warnings
+## **6. Setup Instructions**
 
-⸻
+### **Clone the Repository**
 
-5. React Frontend
-   • LiveFeed.jsx → Real-time sensor grid
-   • StartPrediction.js → Manual input + Predict
-   • History.js → Shows previous predictions + offline maps
-   • Clean UI with pill navigation tabs
+```sh
+git clone https://github.com/Monikaaaaa19/offline-precision-agriculture-ai.git
+cd offline-precision-agriculture-ai
 
-⸻
-
-🛠️ Setup Instructions
-
-1. Create and activate virtual environment
-
-python3 -m venv venv
-source venv/bin/activate
-
-2. Install backend dependencies
+Create Python Environment
 
 pip install -r requirements.txt
 
-3. Start backend
+Start Backend
 
-uvicorn server.main:app --reload
+uvicorn server.main:app --reload --port 8000
 
-4. Start frontend
+Start Frontend
 
-cd frontend
 npm install
 npm start
 
-5. Run ESP32 ingestion script
+Start Arduino Ingestion
 
-python scripts/ingest_from_esp32.py
+python scripts/ingest_arduino.py --port "/dev/cu.usbserial-XXXX"
 
-Or run fake data:
-
-python scripts/ingest_from_esp32.py --simulate
 
 ⸻
 
-🗂️ Project Folder Structure
+7. Dataset
 
-offline-ml-project/
-│
-├── server/
-│ ├── main.py
-│ ├── models_loader.py
-│ ├── utils.py
-│ ├── db_json.py
-│ └── ...
-│
-├── scripts/
-│ ├── ingest_from_esp32.py
-│ └── ws_test_send.py
-│
-├── models/
-│ ├── crop_model.joblib
-│ ├── scaler.joblib
-│ └── label_encoder.joblib
-│
-├── db/
-│ └── predictions.json
-│
-├── frontend/
-│ ├── src/
-│ │ ├── components/
-│ │ └── App.js
-│ └── App.css
-│
-└── data/
-└── india_states.geojson
+This project uses a real-world compiled dataset containing:
+	•	N, P, K nutrient values
+	•	Soil pH and moisture
+	•	Temperature and rainfall
+	•	Latitude + longitude + state mapping
+	•	Crop labels
+	•	Fertilizer recommendations
+
+Location:
+
+data/arginode_corrected_fertilizers.csv
+
+The fertilizer recommendation model performs nearest-neighbor feature search matching sensor inputs to similar historical samples.
 
 ⸻
 
-📊 Prediction Output Example
 
-Predicted Crop: Rice
-Confidence: 92%
-Fertilizer: Apply NPK 30:20:20
-Disease Risk: Moderate (Check for leaf spot)
-State Detected: Karnataka
-Map: /history_map/173146312.png
-
-⸻
-
-💡 Why This Project Is Important
-• Works offline → perfect for rural farmers
-• Real-time sensor analysis
-• Data-driven crop decisions
-• Automatic fertilizer & disease warnings
-• Modern, professional UI
-• Offline GIS mapping
-• Fully open-source
+```
